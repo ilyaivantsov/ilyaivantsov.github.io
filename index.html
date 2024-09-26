@@ -40,6 +40,12 @@
             });
         }
 
+        /**
+         * Function to draw the name in the middle of the screen.
+         * Erases the screen, then fills it with black with a 5% opacity.
+         * Then, draws the name in green with a 100% opacity.
+         * The name is centered horizontally and vertically.
+         */
         function drawName() {
             context.fillStyle = 'rgba(0,0,0,0.05)';
             context.fillRect(0, 0, width, height);
@@ -49,8 +55,19 @@
             context.fillText(name, (width - textWidth) / 2, height / 2);
         }
 
+        function drawTime() {
+            context.fillStyle = 'rgba(0,0,0,0.05)';
+            context.fillRect(0, 0, width, height);
+            context.fillStyle = 'rgba(0,255,0,1)';
+            context.font = `${nameFontSize}px Arial`;
+            const currentTime = new Date().toLocaleTimeString();
+            const textWidth = context.measureText(currentTime).width;
+            context.fillText(currentTime, (width - textWidth) / 2, height / 2);
+        }
+
         function animate() {
-            drawName();
+            // drawName();
+            drawTime();
             matrixEffect();
             requestAnimationFrame(animate);
         }
