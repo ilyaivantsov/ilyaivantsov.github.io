@@ -24,6 +24,11 @@
     <script>
         const name = "Ilya Ivantsov";
         const canvas = document.getElementById('q');
+
+        const screen = window.screen;
+        const width = canvas.width = screen.width;
+        const height = canvas.height = screen.height;
+
         const context = canvas.getContext('2d');
         const columns = Array(256).join(1).split('');
         const fontSize = 10;
