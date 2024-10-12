@@ -6,9 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Document</title>
     <style>
-        body {
+         html, body {
             margin: 0;
+            height: 100%;
             overflow: hidden;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
         }
     </style>
 </head>
@@ -18,9 +24,6 @@
     <script>
         const name = "Ilya Ivantsov";
         const canvas = document.getElementById('q');
-        const screen = window.screen;
-        const width = canvas.width = screen.width;
-        const height = canvas.height = screen.height;
         const context = canvas.getContext('2d');
         const columns = Array(256).join(1).split('');
         const fontSize = 10;
@@ -47,9 +50,13 @@
          * The name is centered horizontally and vertically.
          */
         function drawName() {
-            context.fillStyle = 'rgba(0,0,0,0.05)';
-            context.fillRect(0, 0, width, height);
-            context.fillStyle = 'rgba(0,255,0,1)';
+            // context.fillStyle = 'rgba(0,0,0,0.05)';
+            // context.fillRect(0, 0, width, height);
+            
+            const time = Date.now() * 0.005;
+            const alpha = 0.8 + 0.2 * (Math.sin(time) + 1) / 2; // Alpha value will oscillate between 0.8 and 1
+
+            context.fillStyle = `rgba(0,255,0,${alpha})`;
             context.font = `${nameFontSize}px Arial`;
             const textWidth = context.measureText(name).width;
             context.fillText(name, (width - textWidth) / 2, height / 2);
@@ -66,8 +73,8 @@
         }
 
         function animate() {
-            // drawName();
-            drawTime();
+            drawName();
+            // drawTime();
             matrixEffect();
             requestAnimationFrame(animate);
         }
