@@ -22,7 +22,7 @@
 <body>
     <canvas id="q"></canvas>
     <script>
-        const name = "Ilya Ivantsov";
+        const name = "Ilya Ivantsov".toUpperCase();
         const canvas = document.getElementById('q');
 
         const screen = window.screen;
@@ -55,13 +55,7 @@
          * The name is centered horizontally and vertically.
          */
         function drawName() {
-            // context.fillStyle = 'rgba(0,0,0,0.05)';
-            // context.fillRect(0, 0, width, height);
-            
-            const time = Date.now() * 0.005;
-            const alpha = 0.8 + 0.2 * (Math.sin(time) + 1) / 2; // Alpha value will oscillate between 0.8 and 1
-
-            context.fillStyle = `rgba(0,255,0,${alpha})`;
+            context.fillStyle = 'rgba(0,255,0,1)';
             context.font = `${nameFontSize}px Arial`;
             const textWidth = context.measureText(name).width;
             context.fillText(name, (width - textWidth) / 2, height / 2);
