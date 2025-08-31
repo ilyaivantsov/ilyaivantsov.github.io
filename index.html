@@ -154,15 +154,86 @@
       transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
     }
     
+    /* Ensure smooth transitions between animation states */
+    #mainScreen.matrix-reveal {
+      transition: none;
+    }
+    
     #mainScreen.active {
       opacity: 1;
       transform: scale(1);
+      transition: all 0.5s ease;
+      display: block !important;
+    }
+    
+    #mainScreen.matrix-reveal {
+      animation: matrixReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+      transition: none !important;
+    }
+    
+    #mainScreen.matrix-reveal canvas {
+      animation: canvasReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    
+    #mainScreen.active canvas {
+      animation: canvasFinalize 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+      transition: all 0.5s ease, box-shadow 1.5s ease;
+    }
+    
+    @keyframes canvasReveal {
+      0% {
+        opacity: 0;
+        transform: scale(0.05) rotate(-5deg);
+        filter: brightness(0.05) contrast(0.3) blur(5px);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(0.5) rotate(-2deg);
+        filter: brightness(0.5) contrast(0.6) blur(2px);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1) contrast(1) blur(0px);
+      }
+    }
+    
+    @keyframes canvasFinalize {
+      0% {
+        filter: brightness(1) contrast(1);
+      }
+      50% {
+        filter: brightness(1.1) contrast(1.1);
+      }
+      100% {
+        filter: brightness(1) contrast(1);
+      }
+    }
+    
+    @keyframes matrixReveal {
+      0% {
+        opacity: 0;
+        transform: scale(0.1) rotate(-3deg);
+        filter: brightness(0.1) contrast(0.5);
+      }
+      50% {
+        opacity: 0.5;
+        transform: scale(0.6) rotate(-1deg);
+        filter: brightness(0.6) contrast(0.8);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1) contrast(1);
+      }
     }
     
     canvas {
-      display: block;
+      display: block !important;
       width: 100vw;
       height: 100vh;
+      position: relative;
+      z-index: 1;
     }
     #err {
       position: fixed;
@@ -195,6 +266,21 @@
       opacity: 0;
     }
     
+    #controls:not(.hidden) {
+      animation: controlsSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    
+    @keyframes controlsSlideIn {
+      0% {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateY(0);
+        opacity: 0.8;
+      }
+    }
+    
     .key {
       color: #88ff88;
       font-weight: bold;
@@ -213,9 +299,36 @@
       transition: all 0.8s ease;
     }
     
+    /* Ensure smooth transitions between animation states */
+    #loadingOverlay.matrix-entrance {
+      transition: none;
+    }
+    
     #loadingOverlay.hidden {
       opacity: 0;
       pointer-events: none;
+    }
+    
+    /* === MATRIX ENTRANCE ANIMATION === */
+    #loadingOverlay.matrix-entrance {
+      animation: matrixEntrance 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
+      transition: none !important;
+    }
+    
+    @keyframes matrixEntrance {
+      0% {
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1) contrast(1);
+      }
+      50% {
+        transform: scale(1.5) rotate(2deg);
+        filter: brightness(1.3) contrast(1.2);
+      }
+      100% {
+        transform: scale(3) rotate(5deg);
+        filter: brightness(2) contrast(1.5);
+        opacity: 0;
+      }
     }
     
     .loading-text {
@@ -224,6 +337,27 @@
       text-transform: uppercase;
       letter-spacing: 0.3em;
       animation: loadingPulse 1.5s ease-in-out infinite;
+    }
+    
+    /* Loading text also participates in matrix entrance */
+    #loadingOverlay.matrix-entrance .loading-text {
+      animation: loadingTextEntrance 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    
+    @keyframes loadingTextEntrance {
+      0% {
+        transform: scale(1) rotate(0deg);
+        filter: brightness(1) hue-rotate(0deg);
+      }
+      50% {
+        transform: scale(1.3) rotate(3deg);
+        filter: brightness(1.4) hue-rotate(45deg);
+      }
+      100% {
+        transform: scale(2) rotate(6deg);
+        filter: brightness(2) hue-rotate(90deg);
+        opacity: 0;
+      }
     }
     
     @keyframes loadingPulse {
@@ -247,6 +381,18 @@
     
     #mobileControls.visible {
       opacity: 1;
+      animation: mobileControlsSlideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    
+    @keyframes mobileControlsSlideUp {
+      0% {
+        transform: translateX(-50%) translateY(50px);
+        opacity: 0;
+      }
+      100% {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+      }
     }
     
     .mobile-btn {
@@ -271,6 +417,46 @@
     .mobile-btn:active {
       background: rgba(0,255,65,0.4);
       transform: scale(0.95);
+    }
+    
+    /* === ACCESSIBILITY === */
+    @media (prefers-reduced-motion: reduce) {
+      #loadingOverlay.matrix-entrance,
+      #mainScreen.matrix-reveal,
+      #loadingOverlay.matrix-entrance .loading-text,
+      #controls:not(.hidden),
+      #mobileControls.visible,
+      #mainScreen.matrix-reveal canvas,
+      #mainScreen.active canvas {
+        animation: none !important;
+        transition: opacity 0.3s ease !important;
+      }
+      
+      #loadingOverlay.matrix-entrance {
+        opacity: 0 !important;
+      }
+      
+      #mainScreen.matrix-reveal {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+      }
+      
+      #mainScreen.matrix-reveal canvas,
+      #mainScreen.active canvas {
+        opacity: 1 !important;
+        transform: scale(1) !important;
+        filter: brightness(1) contrast(1) blur(0px) !important;
+      }
+      
+      #loadingOverlay.matrix-entrance .loading-text {
+        opacity: 0 !important;
+      }
+      
+      #controls:not(.hidden),
+      #mobileControls.visible {
+        opacity: 1 !important;
+        transform: translateY(0) !important;
+      }
     }
     
     /* === RESPONSIVE === */
@@ -522,6 +708,14 @@
       drops = new Array(COLS).fill(0).map(() => Math.floor(Math.random() * ROWS) * -1);
       ctx.font = `${FONT_SIZE}px monospace`;
       ctx.textBaseline = 'top';
+      
+      console.log('Canvas size set:', {
+        W, H, COLS, ROWS, FONT_SIZE,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        sampleWidth: sample.width,
+        sampleHeight: sample.height
+      });
     }
 
     window.addEventListener('resize', () => {
@@ -544,19 +738,52 @@
       // Fade out intro screen
       introScreen.classList.add('fade-out');
       
-      // Wait for transition
+      // Wait for intro fade out
       await new Promise(resolve => setTimeout(resolve, 800));
       
       try {
-        await startCamera();
+        // Start camera in background
+        const cameraPromise = startCamera();
         
-        // Transition to matrix screen
+        // Start matrix entrance animation (loading overlay проваливается в экран)
+        loadingOverlay.classList.add('matrix-entrance');
+        
+        // Wait for matrix entrance animation to complete
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Hide loading overlay after animation
+        loadingOverlay.classList.add('hidden');
+        
+        // Wait for camera to be ready
+        await cameraPromise;
+        
+        // Ensure canvas is properly sized
+        setCanvasSize();
+        
+        // Transition to matrix screen with reveal animation
         currentScreen = 'matrix';
+        console.log('Current screen set to:', currentScreen);
+        mainScreen.classList.add('matrix-reveal');
+        
+        // Wait for matrix reveal animation
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Remove animation classes and show controls
+        mainScreen.classList.remove('matrix-reveal');
         mainScreen.classList.add('active');
         
-        // Hide loading and show controls
-        await new Promise(resolve => setTimeout(resolve, 400));
-        loadingOverlay.classList.add('hidden');
+        // Ensure matrix animation is running
+        if (!matrixAnimationRunning) {
+          matrixAnimationRunning = true;
+          console.log('Starting matrix animation loop');
+        }
+        
+        // Always start the animation loop
+        console.log('Requesting animation frame');
+        requestAnimationFrame(mainLoop);
+        
+        // Show controls with a slight delay for better UX
+        await new Promise(resolve => setTimeout(resolve, 300));
         
         if (isMobile) {
           mobileControls.classList.add('visible');
@@ -564,58 +791,110 @@
           controlsPanel.classList.remove('hidden');
         }
         
+        // Add a subtle glow effect to the canvas after animation
+        const canvas = document.getElementById('q');
+        if (canvas) {
+          canvas.style.boxShadow = '0 0 30px rgba(0, 255, 65, 0.2)';
+          setTimeout(() => {
+            canvas.style.boxShadow = 'none';
+          }, 1500);
+        }
+        
+        // Log success for debugging
+        console.log('Matrix transition completed successfully');
+        
       } catch (error) {
         // Handle camera error - back to intro
         currentScreen = 'intro';
+        loadingOverlay.classList.remove('matrix-entrance');
         loadingOverlay.classList.add('hidden');
         introScreen.classList.remove('fade-out');
         errBox.textContent = 'Camera access failed: ' + (error.message || error);
+        
+        // Reset any animation states
+        mainScreen.classList.remove('matrix-reveal');
       }
     }
 
     // === CAMERA FUNCTIONS ===
     async function startCamera(facingMode = currentCameraFacing) {
-      // Stop existing stream
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      
-      const constraints = {
-        video: {
-          facingMode: facingMode,
-          frameRate: { ideal: isMobile ? 24 : 30 }
-        },
-        audio: false
-      };
-      
-      // Different resolution constraints for mobile vs desktop
-      if (isMobile) {
-        constraints.video.width = { ideal: 1280, min: 640 };
-        constraints.video.height = { ideal: 720, min: 480 };
-      } else {
-        constraints.video.width = { ideal: 1920, min: 1280 };
-        constraints.video.height = { ideal: 1080, min: 720 };
-      }
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      currentStream = stream;
-      currentCameraFacing = facingMode;
-      video.srcObject = stream;
+      try {
+        // Stop existing stream
+        if (currentStream) {
+          currentStream.getTracks().forEach(track => track.stop());
+        }
+        
+        const constraints = {
+          video: {
+            facingMode: facingMode,
+            frameRate: { ideal: isMobile ? 24 : 30 }
+          },
+          audio: false
+        };
+        
+        // Different resolution constraints for mobile vs desktop
+        if (isMobile) {
+          constraints.video.width = { ideal: 1280, min: 640 };
+          constraints.video.height = { ideal: 720, min: 480 };
+        } else {
+          constraints.video.width = { ideal: 1920, min: 1280 };
+          constraints.video.height = { ideal: 1080, min: 720 };
+        }
+        
+        console.log('Requesting camera access with constraints:', constraints);
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        currentStream = stream;
+        currentCameraFacing = facingMode;
+        video.srcObject = stream;
 
-      // Ждём метаданные, чтобы появились videoWidth/Height
-      await new Promise((res) => {
-        if (video.readyState >= 2) res();
-        else video.onloadedmetadata = res;
-      });
+        // Ждём метаданные, чтобы появились videoWidth/Height
+        await new Promise((res) => {
+          if (video.readyState >= 2) res();
+          else video.onloadedmetadata = res;
+        });
 
-      await video.play().catch(() => {}); // iOS иногда требует жест
-      setCanvasSize();
-      cameraActive = true;
-      lastFrameTime = 0;
-      
-      if (!matrixAnimationRunning) {
-        matrixAnimationRunning = true;
-        requestAnimationFrame(mainLoop);
+        console.log('Video metadata loaded:', {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState
+        });
+
+        await video.play().catch((e) => console.log('Video play error:', e)); // iOS иногда требует жест
+        setCanvasSize();
+        cameraActive = true;
+        lastFrameTime = 0;
+        
+        console.log('Camera activated successfully:', {
+          cameraActive,
+          COLS,
+          ROWS,
+          W,
+          H
+        });
+        
+        if (!matrixAnimationRunning) {
+          matrixAnimationRunning = true;
+          requestAnimationFrame(mainLoop);
+        }
+      } catch (error) {
+        console.log('Camera access failed:', error);
+        // Create a fallback canvas with matrix effect when camera is not available
+        setCanvasSize();
+        cameraActive = false;
+        
+        console.log('Using fallback matrix pattern:', {
+          cameraActive,
+          COLS,
+          ROWS,
+          W,
+          H
+        });
+        
+        // Start matrix animation loop without camera
+        if (!matrixAnimationRunning) {
+          matrixAnimationRunning = true;
+          requestAnimationFrame(mainLoop);
+        }
       }
     }
     
@@ -663,11 +942,49 @@
 
     // Получить массив яркостей (0..1) для всей сетки из текущего кадра видео
     function getGridLumas() {
+      if (!cameraActive) {
+        // Fallback: generate matrix-style pattern when camera is not available
+        const lumas = new Float32Array(COLS * ROWS);
+        const time = Date.now() * 0.001;
+        
+        for (let y = 0; y < ROWS; y++) {
+          for (let x = 0; x < COLS; x++) {
+            const index = y * COLS + x;
+            // Create animated matrix pattern
+            const noise = Math.sin(x * 0.1 + time) * Math.cos(y * 0.1 + time * 0.7);
+            const wave = Math.sin(x * 0.05 + time * 2) * Math.cos(y * 0.05 + time * 1.5);
+            lumas[index] = Math.max(0, Math.min(1, (noise + wave) * 0.3 + 0.5));
+          }
+        }
+        return lumas;
+      }
+      
+      // Debug: check video state
+      if (!video.videoWidth || !video.videoHeight) {
+        console.log('Video not ready:', {
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState
+        });
+        // Return fallback pattern if video is not ready
+        const lumas = new Float32Array(COLS * ROWS);
+        const time = Date.now() * 0.001;
+        for (let y = 0; y < ROWS; y++) {
+          for (let x = 0; x < COLS; x++) {
+            const index = y * COLS + x;
+            const noise = Math.sin(x * 0.1 + time) * Math.cos(y * 0.1 + time * 0.7);
+            const wave = Math.sin(x * 0.05 + time * 2) * Math.cos(y * 0.05 + time * 1.5);
+            lumas[index] = Math.max(0, Math.min(1, (noise + wave) * 0.3 + 0.5));
+          }
+        }
+        return lumas;
+      }
+      
       // Отрисовываем текущий видеокадр в маленький буфер размером COLS x ROWS
       // это эффективно масштабирует и «усредняет» пиксели под одну «ячейку символа»
       // Сохраняем пропорции: заполняем весь буфер (cover)
-      const vW = video.videoWidth || 640;
-      const vH = video.videoHeight || 480;
+      const vW = video.videoWidth;
+      const vH = video.videoHeight;
       const srcRatio = vW / vH;
       const dstRatio = COLS / ROWS;
 
@@ -682,6 +999,17 @@
         sx = Math.floor((vW - sw) / 2);
       }
 
+      // Debug: log video processing
+      if (Math.random() < 0.01) { // Log 1% of the time to avoid spam
+        console.log('Processing video frame:', {
+          videoWidth: vW,
+          videoHeight: vH,
+          sampleWidth: COLS,
+          sampleHeight: ROWS,
+          sx, sy, sw, sh
+        });
+      }
+
       // Улучшенное качество ресайза для лучшей четкости
       sctx.imageSmoothingEnabled = true;
       sctx.imageSmoothingQuality = 'high';
@@ -694,6 +1022,18 @@
         const r = img[i], g = img[i+1], b = img[i+2];
         lumas[p] = (0.299*r + 0.587*g + 0.114*b) / 255;
       }
+      
+      // Debug: log some sample values
+      if (Math.random() < 0.01) {
+        console.log('Sample luma values:', {
+          first: lumas[0],
+          middle: lumas[Math.floor(lumas.length / 2)],
+          last: lumas[lumas.length - 1],
+          min: Math.min(...lumas),
+          max: Math.max(...lumas)
+        });
+      }
+      
       return lumas;
     }
 
@@ -759,7 +1099,24 @@
     // === MAIN MATRIX LOOP ===
     let lastFrameTime = 0;
     function mainLoop(ts) {
-      if (currentScreen !== 'matrix' || !matrixAnimationRunning) return;
+      // Debug: log mainLoop entry
+      if (ts % 1000 < 16) { // Log once per second
+        console.log('MainLoop entry:', {
+          currentScreen,
+          matrixAnimationRunning,
+          ts
+        });
+      }
+      
+      if (currentScreen !== 'matrix' || !matrixAnimationRunning) {
+        if (ts % 1000 < 16) {
+          console.log('MainLoop early return:', {
+            currentScreen,
+            matrixAnimationRunning
+          });
+        }
+        return;
+      }
       
       requestAnimationFrame(mainLoop);
 
@@ -767,7 +1124,31 @@
       if (ts - lastFrameTime < (1000 / FPS)) return;
       lastFrameTime = ts;
 
-      if (!COLS || !ROWS || !cameraActive) return;
+      // Debug: log canvas state
+      if (ts % 1000 < 16) { // Log once per second
+        console.log('MainLoop debug:', {
+          currentScreen,
+          matrixAnimationRunning,
+          COLS,
+          ROWS,
+          cameraActive,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState
+        });
+      }
+
+      if (!COLS || !ROWS) {
+        console.log('Canvas not initialized:', { COLS, ROWS });
+        return;
+      }
+      
+      if (!cameraActive) {
+        console.log('Camera not active, using fallback pattern');
+        // Continue with fallback pattern
+      } else {
+        console.log('Camera active, processing video frame');
+      }
 
       // 1) Затухание только шлейфов «дождя» (предыдущего кадра)
       //    Потом перерисуем базовое ASCII-изображение полностью.
@@ -785,6 +1166,19 @@
       ctx.fillStyle = neonGradient;
       ctx.font = `${FONT_SIZE}px monospace`;
       ctx.textBaseline = 'top';
+
+      // Debug: log rendering info
+      if (ts % 2000 < 16) { // Log every 2 seconds
+        console.log('Rendering frame:', {
+          lumasLength: lumas.length,
+          sampleValues: lumas.slice(0, 5),
+          canvasContext: !!ctx,
+          font: ctx.font,
+          canvasVisible: canvas.style.display !== 'none',
+          canvasOpacity: canvas.style.opacity,
+          canvasZIndex: canvas.style.zIndex
+        });
+      }
 
       // Чтобы быстрее — проходим по строкам
       for (let y = 0; y < ROWS; y++) {
