@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Matrix Camera ASCII</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#000000">
+  <title>MATRIX</title>
   <style>
     html, body {
       margin: 0;
@@ -11,30 +15,154 @@
       overflow: hidden;
       background: #000;
       color: #0f0;
-      font-family: monospace;
+      font-family: 'Courier New', monospace;
+      /* Mobile optimizations */
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      /* Safe area for notched devices */
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     }
+    
+    /* === INTRO SCREEN === */
+    #introScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 1;
+      transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    #introScreen.fade-out {
+      opacity: 0;
+      transform: scale(0.95);
+      pointer-events: none;
+    }
+    
+    #introScreen .matrix-bg {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+    }
+    
+    #introScreen .content {
+      text-align: center;
+      transform: translateY(0);
+      opacity: 1;
+      transition: all 0.8s ease-out;
+      animation: introGlow 2s ease-in-out infinite alternate;
+    }
+    
+    #introScreen .author-name {
+      font-size: clamp(2rem, 8vw, 4rem);
+      font-weight: bold;
+      color: #00ff41;
+      text-shadow: 0 0 20px #00ff41, 0 0 40px #00ff41, 0 0 60px #00ff41;
+      letter-spacing: 0.1em;
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+    
+    #introScreen .author-surname {
+      font-size: clamp(1.5rem, 6vw, 3rem);
+      font-weight: normal;
+      color: #00cc33;
+      text-shadow: 0 0 15px #00cc33, 0 0 30px #00cc33;
+      letter-spacing: 0.15em;
+      margin-bottom: 3rem;
+      text-transform: uppercase;
+    }
+    
+    #enterMatrixBtn {
+      padding: 20px 60px;
+      background: linear-gradient(45deg, #001100, #003300);
+      border: 2px solid #00ff41;
+      color: #00ff41;
+      font-size: clamp(1rem, 3vw, 1.5rem);
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      border-radius: 0;
+      transition: all 0.3s ease;
+      font-family: inherit;
+      /* Mobile touch optimization */
+      min-height: 44px; /* Apple's minimum touch target */
+      min-width: 120px;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    #enterMatrixBtn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0,255,65,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    #enterMatrixBtn:hover::before {
+      left: 100%;
+    }
+    
+    #enterMatrixBtn:hover,
+    #enterMatrixBtn:focus {
+      box-shadow: 0 0 30px #00ff41;
+      transform: scale(1.05);
+      color: #fff;
+      outline: none;
+    }
+    
+    /* Mobile active states */
+    #enterMatrixBtn:active {
+      transform: scale(0.98);
+      box-shadow: 0 0 20px #00ff41;
+    }
+    
+    @media (hover: none) and (pointer: coarse) {
+      /* Mobile-specific hover alternative */
+      #enterMatrixBtn:active {
+        background: linear-gradient(45deg, #002200, #004400);
+      }
+    }
+    
+    @keyframes introGlow {
+      0% { filter: brightness(1) contrast(1); }
+      100% { filter: brightness(1.1) contrast(1.2); }
+    }
+    
+    /* === MAIN SCREEN === */
+    #mainScreen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      opacity: 0;
+      transform: scale(1.1);
+      transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    
+    #mainScreen.active {
+      opacity: 1;
+      transform: scale(1);
+    }
+    
     canvas {
       display: block;
       width: 100vw;
       height: 100vh;
-    }
-    #startBtn {
-      position: fixed;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      background: rgba(0,0,0,0.8);
-      color: #00ff88;
-      font: 18px/1.4 monospace;
-      z-index: 10;
-    }
-    #startBtn button {
-      padding: 12px 20px;
-      background: #001a00;
-      border: 1px solid #00ff88;
-      color: #00ff88;
-      border-radius: 8px;
-      cursor: pointer;
     }
     #err {
       position: fixed;
@@ -44,7 +172,9 @@
       font: 12px/1.4 monospace;
       opacity: .9;
       pointer-events: none;
+      z-index: 200;
     }
+    
     #controls {
       position: fixed;
       top: 8px; right: 8px;
@@ -55,30 +185,232 @@
       background: rgba(0,0,0,0.3);
       padding: 8px;
       border-radius: 4px;
+      z-index: 200;
+      transform: translateY(0);
+      transition: all 0.5s ease;
     }
+    
+    #controls.hidden {
+      transform: translateY(-100px);
+      opacity: 0;
+    }
+    
     .key {
       color: #88ff88;
       font-weight: bold;
     }
+    
+    /* === LOADING OVERLAY === */
+    #loadingOverlay {
+      position: fixed;
+      inset: 0;
+      background: #000;
+      z-index: 2000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 1;
+      transition: all 0.8s ease;
+    }
+    
+    #loadingOverlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    
+    .loading-text {
+      color: #00ff41;
+      font-size: 1.5rem;
+      text-transform: uppercase;
+      letter-spacing: 0.3em;
+      animation: loadingPulse 1.5s ease-in-out infinite;
+    }
+    
+    @keyframes loadingPulse {
+      0%, 100% { opacity: 0.6; transform: scale(1); }
+      50% { opacity: 1; transform: scale(1.05); }
+    }
+    
+    /* === MOBILE CONTROLS === */
+    #mobileControls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: none;
+      flex-direction: row;
+      gap: 15px;
+      z-index: 300;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
+    
+    #mobileControls.visible {
+      opacity: 1;
+    }
+    
+    .mobile-btn {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: rgba(0,255,65,0.2);
+      border: 1px solid #00ff41;
+      color: #00ff41;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: bold;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .mobile-btn:active {
+      background: rgba(0,255,65,0.4);
+      transform: scale(0.95);
+    }
+    
+    /* === RESPONSIVE === */
+    @media (max-width: 768px) {
+      html, body {
+        /* Additional mobile optimization */
+        overscroll-behavior: none;
+      }
+      
+      #introScreen .author-name {
+        font-size: clamp(1.5rem, 12vw, 2.8rem);
+        text-shadow: 0 0 15px #00ff41, 0 0 30px #00ff41, 0 0 45px #00ff41;
+      }
+      
+      #introScreen .author-surname {
+        font-size: clamp(1rem, 10vw, 2.2rem);
+        margin-bottom: 2.5rem;
+        text-shadow: 0 0 10px #00cc33, 0 0 20px #00cc33;
+      }
+      
+      #enterMatrixBtn {
+        padding: 18px 45px;
+        font-size: clamp(1rem, 4.5vw, 1.3rem);
+        min-height: 50px;
+      }
+      
+      #controls {
+        display: none; /* Hide keyboard controls on mobile */
+      }
+      
+      #mobileControls {
+        display: flex;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      #introScreen .content {
+        padding: 0 20px;
+      }
+      
+      #introScreen .author-name {
+        font-size: clamp(1.2rem, 15vw, 2.2rem);
+        margin-bottom: 0.3rem;
+      }
+      
+      #introScreen .author-surname {
+        font-size: clamp(0.9rem, 12vw, 1.8rem);
+        margin-bottom: 2rem;
+      }
+      
+      #enterMatrixBtn {
+        padding: 16px 35px;
+        font-size: clamp(0.9rem, 5vw, 1.1rem);
+        letter-spacing: 0.1em;
+      }
+      
+      .mobile-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 11px;
+      }
+    }
+    
+    /* Landscape orientation on mobile */
+    @media (max-height: 500px) and (orientation: landscape) {
+      #introScreen .author-name {
+        font-size: clamp(1rem, 8vh, 1.8rem);
+      }
+      
+      #introScreen .author-surname {
+        font-size: clamp(0.8rem, 6vh, 1.4rem);
+        margin-bottom: 1.5rem;
+      }
+      
+      #enterMatrixBtn {
+        padding: 12px 30px;
+        font-size: clamp(0.8rem, 4vh, 1rem);
+      }
+    }
   </style>
 </head>
 <body>
-  <div id="startBtn"><button>Start camera</button></div>
-  <div id="err" aria-live="polite"></div>
-  <div id="controls">
-    <span class="key">R</span> - toggle rain effect<br>
-    <span class="key">E</span> - toggle enhancement<br>
-    <span class="key">F</span> - toggle fullscreen
+  <!-- INTRO SCREEN -->
+  <div id="introScreen">
+    <canvas id="introBg" class="matrix-bg"></canvas>
+    <div class="content">
+      <div class="author-name">ILYA</div>
+      <div class="author-surname">IVANTSOV</div>
+      <button id="enterMatrixBtn">ENTER THE MATRIX</button>
+    </div>
   </div>
-  <canvas id="q"></canvas>
+  
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay" class="hidden">
+    <div class="loading-text">Initializing Neural Interface...</div>
+  </div>
+  
+  <!-- MAIN SCREEN -->
+  <div id="mainScreen">
+    <div id="err" aria-live="polite"></div>
+    <div id="controls" class="hidden">
+      <span class="key">R</span> - toggle rain effect<br>
+      <span class="key">E</span> - toggle enhancement<br>
+      <span class="key">F</span> - toggle fullscreen
+    </div>
+    
+    <!-- MOBILE CONTROLS -->
+    <div id="mobileControls">
+      <button class="mobile-btn" id="toggleRainBtn" title="Toggle Rain">R</button>
+      <button class="mobile-btn" id="toggleEnhanceBtn" title="Toggle Enhancement">E</button>
+      <button class="mobile-btn" id="toggleFullscreenBtn" title="Toggle Fullscreen">⛶</button>
+      <button class="mobile-btn" id="cameraSwitchBtn" title="Switch Camera">📷</button>
+    </div>
+    
+    <canvas id="q"></canvas>
+  </div>
 
   <script>
-    // --- Основные узлы/контексты ---
+    // --- UI Elements ---
+    const introScreen = document.getElementById('introScreen');
+    const mainScreen = document.getElementById('mainScreen');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const enterMatrixBtn = document.getElementById('enterMatrixBtn');
+    const controlsPanel = document.getElementById('controls');
+    const mobileControls = document.getElementById('mobileControls');
+    const errBox = document.getElementById('err');
+    
+    let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    // Mobile control buttons
+    const toggleRainBtn = document.getElementById('toggleRainBtn');
+    const toggleEnhanceBtn = document.getElementById('toggleEnhanceBtn');
+    const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
+    const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
+    
+    // --- Canvas Elements ---
     const canvas = document.getElementById('q');
     const ctx = canvas.getContext('2d', { alpha: false });
-    const startOverlay = document.getElementById('startBtn');
-    const startButton  = startOverlay.querySelector('button');
-    const errBox = document.getElementById('err');
+    const introBgCanvas = document.getElementById('introBg');
+    const introBgCtx = introBgCanvas.getContext('2d', { alpha: false });
 
     // Скрытое <video> для потока камеры
     const video = document.createElement('video');
@@ -91,11 +423,11 @@
     const sctx   = sample.getContext('2d', { willReadFrequently: true });
 
     // --- Настройки ASCII/матрицы ---
-    const FONT_SIZE = 8; // уменьшен для большей детализации (px, в CSS-пикселях)
+    const FONT_SIZE = isMobile ? 10 : 8; // немного крупнее на мобильных для читаемости
     // Оптимизированный набор символов по визуальной плотности (от светлого к темному)
     const CHARSET = " .`',^:;~\"-!|\\/()*+?><}{][Il1ifjrxnuvczXYUJCLQ0OZmwqpdbkhao#MW&8%B@$█";
-    const FPS = 30;        // ограничение кадров
-    const FADE_ALPHA = 0.04; // уменьшен для меньшего замыливания
+    const FPS = isMobile ? 24 : 30;        // снижение FPS на мобильных для экономии батареи
+    const FADE_ALPHA = isMobile ? 0.06 : 0.04; // слегка больше на мобильных
     
     // Настройки качества изображения
     const CONTRAST = 1.3;   // увеличение контрастности
@@ -103,18 +435,63 @@
     const GAMMA = 0.8;      // гамма-коррекция для лучшей видимости деталей
     
     // Режимы отображения
-    let showRain = true;      // можно отключить дождь для лучшей читаемости
+    let showRain = false;      // можно отключить дождь для лучшей читаемости
     let enhancedMode = true;  // улучшенная обработка изображения
+    
+    // === СОСТОЯНИЯ ПРИЛОЖЕНИЯ ===
+    let currentScreen = 'intro'; // 'intro', 'loading', 'matrix'
+    let introAnimationRunning = false;
+    let matrixAnimationRunning = false;
+    let cameraActive = false;
+    
+    // === MOBILE STATE ===
+    let currentCameraFacing = 'user'; // 'user' or 'environment'
+    let currentStream = null;
+    let visibilityChangeHandler = null;
 
     let dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
     let W = 0, H = 0, COLS = 0, ROWS = 0;
+    let introW = 0, introH = 0, introCOLS = 0, introROWS = 0;
 
     // Позиции "дождя" для каждого столбца (в строках сетки)
     let drops = [];
+    let introDrops = [];
 
-    // Градиент для неонового зелёного
+    // Градиенты для неонового зелёного
     let neonGradient = null;
+    let introGradient = null;
 
+    // === SETUP INTRO CANVAS ===
+    function setupIntroCanvas() {
+      dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+      const w = window.innerWidth;
+      const h = window.innerHeight;
+      
+      introBgCanvas.width = Math.floor(w * dpr);
+      introBgCanvas.height = Math.floor(h * dpr);
+      introBgCanvas.style.width = w + 'px';
+      introBgCanvas.style.height = h + 'px';
+      introBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      
+      introW = w; introH = h;
+      introCOLS = Math.floor(introW / FONT_SIZE);
+      introROWS = Math.floor(introH / FONT_SIZE);
+      
+      // Градиент для intro
+      introGradient = introBgCtx.createLinearGradient(0, 0, 0, introH);
+      introGradient.addColorStop(0.00, '#001100');
+      introGradient.addColorStop(0.35, '#003322');
+      introGradient.addColorStop(0.65, '#004433');
+      introGradient.addColorStop(1.00, '#005544');
+      
+      // Инициализация дождя для intro
+      introDrops = new Array(introCOLS).fill(0).map(() => Math.floor(Math.random() * introROWS) * -1);
+      
+      introBgCtx.font = `${FONT_SIZE}px monospace`;
+      introBgCtx.textBaseline = 'top';
+    }
+
+    // === SETUP MAIN CANVAS ===
     function setCanvasSize() {
       dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
       const w = window.innerWidth;
@@ -123,7 +500,7 @@
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = w + 'px';
       canvas.style.height = h + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // работать в CSS-пикселях
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       W = w; H = h;
 
       // Сетка символов
@@ -147,43 +524,116 @@
       ctx.textBaseline = 'top';
     }
 
-    window.addEventListener('resize', setCanvasSize);
-
-    // --- Работа с камерой ---
-    async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: 'user', 
-            width: { ideal: 1920, min: 1280 }, 
-            height: { ideal: 1080, min: 720 },
-            frameRate: { ideal: 30 }
-          },
-          audio: false
-        });
-        video.srcObject = stream;
-
-        // Ждём метаданные, чтобы появились videoWidth/Height
-        await new Promise((res) => {
-          if (video.readyState >= 2) res();
-          else video.onloadedmetadata = res;
-        });
-
-        await video.play().catch(() => {}); // iOS иногда требует жест
-        startOverlay.style.display = 'none';
+    window.addEventListener('resize', () => {
+      if (currentScreen === 'intro') {
+        setupIntroCanvas();
+      } else {
         setCanvasSize();
-        lastFrameTime = 0;
-        requestAnimationFrame(loop);
-      } catch (e) {
-        errBox.textContent = 'Ошибка доступа к камере: ' + (e && e.message ? e.message : e);
+      }
+    });
+
+    // === TRANSITIONS BETWEEN SCREENS ===
+    async function enterMatrix() {
+      if (currentScreen !== 'intro') return;
+      
+      currentScreen = 'loading';
+      
+      // Show loading overlay
+      loadingOverlay.classList.remove('hidden');
+      
+      // Fade out intro screen
+      introScreen.classList.add('fade-out');
+      
+      // Wait for transition
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
+      try {
+        await startCamera();
+        
+        // Transition to matrix screen
+        currentScreen = 'matrix';
+        mainScreen.classList.add('active');
+        
+        // Hide loading and show controls
+        await new Promise(resolve => setTimeout(resolve, 400));
+        loadingOverlay.classList.add('hidden');
+        
+        if (isMobile) {
+          mobileControls.classList.add('visible');
+        } else {
+          controlsPanel.classList.remove('hidden');
+        }
+        
+      } catch (error) {
+        // Handle camera error - back to intro
+        currentScreen = 'intro';
+        loadingOverlay.classList.add('hidden');
+        introScreen.classList.remove('fade-out');
+        errBox.textContent = 'Camera access failed: ' + (error.message || error);
       }
     }
 
-    startButton.addEventListener('click', startCamera);
-    // Попробовать авто-старт (в десктопе/https обычно сработает)
-    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-      // Позволим пользователю видеть кнопку; автозапуск попытаемся параллельно
-      startCamera().catch(() => {});
+    // === CAMERA FUNCTIONS ===
+    async function startCamera(facingMode = currentCameraFacing) {
+      // Stop existing stream
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      
+      const constraints = {
+        video: {
+          facingMode: facingMode,
+          frameRate: { ideal: isMobile ? 24 : 30 }
+        },
+        audio: false
+      };
+      
+      // Different resolution constraints for mobile vs desktop
+      if (isMobile) {
+        constraints.video.width = { ideal: 1280, min: 640 };
+        constraints.video.height = { ideal: 720, min: 480 };
+      } else {
+        constraints.video.width = { ideal: 1920, min: 1280 };
+        constraints.video.height = { ideal: 1080, min: 720 };
+      }
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      currentStream = stream;
+      currentCameraFacing = facingMode;
+      video.srcObject = stream;
+
+      // Ждём метаданные, чтобы появились videoWidth/Height
+      await new Promise((res) => {
+        if (video.readyState >= 2) res();
+        else video.onloadedmetadata = res;
+      });
+
+      await video.play().catch(() => {}); // iOS иногда требует жест
+      setCanvasSize();
+      cameraActive = true;
+      lastFrameTime = 0;
+      
+      if (!matrixAnimationRunning) {
+        matrixAnimationRunning = true;
+        requestAnimationFrame(mainLoop);
+      }
+    }
+    
+    // === CAMERA SWITCHING ===
+    async function switchCamera() {
+      if (!cameraActive) return;
+      
+      const newFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
+      
+      try {
+        await startCamera(newFacing);
+      } catch (error) {
+        console.log('Could not switch camera:', error);
+        // Fallback to original camera
+        if (currentCameraFacing !== newFacing) {
+          await startCamera(currentCameraFacing);
+        }
+      }
     }
 
     // --- Улучшенная обработка изображения ---
@@ -247,16 +697,77 @@
       return lumas;
     }
 
-    // --- Основной рендер ---
+    // === INTRO ANIMATION ===
+    function renderIntroMatrixRain() {
+      if (!introCOLS || !introROWS) return;
+      
+      // Затухание предыдущего кадра
+      introBgCtx.fillStyle = 'rgba(0,0,0,0.05)';
+      introBgCtx.fillRect(0, 0, introW, introH);
+      
+      // Рендер дождя из символов
+      for (let x = 0; x < introCOLS; x++) {
+        let y = introDrops[x];
+        
+        if (y >= 0 && y < introROWS && Math.random() > 0.4) {
+          // Случайный символ
+          const ch = CHARSET[Math.floor(Math.random() * CHARSET.length)];
+          
+          // Голова капли - яркая
+          introBgCtx.save();
+          introBgCtx.fillStyle = '#00ff41';
+          introBgCtx.globalAlpha = 0.9;
+          introBgCtx.fillText(ch, x * FONT_SIZE, y * FONT_SIZE);
+          introBgCtx.restore();
+          
+          // Хвост
+          for (let t = 1; t <= 4; t++) {
+            const yy = y - t;
+            if (yy < 0) break;
+            const alpha = Math.max(0.1, 1 - t / 5);
+            introBgCtx.save();
+            introBgCtx.globalAlpha = alpha * 0.6;
+            introBgCtx.fillStyle = introGradient;
+            introBgCtx.fillText(ch, x * FONT_SIZE, yy * FONT_SIZE);
+            introBgCtx.restore();
+          }
+        }
+        
+        // Движение капли
+        introDrops[x] = y + 1;
+        
+        // Перезапуск капли
+        if (introDrops[x] * FONT_SIZE > introH && Math.random() > 0.98) {
+          introDrops[x] = Math.floor(-Math.random() * introROWS * 0.3);
+        }
+      }
+    }
+    
+    // === INTRO LOOP ===
+    let introLastTime = 0;
+    function introLoop(ts) {
+      if (currentScreen !== 'intro' || !introAnimationRunning) return;
+      
+      if (ts - introLastTime >= (1000 / FPS)) {
+        renderIntroMatrixRain();
+        introLastTime = ts;
+      }
+      
+      requestAnimationFrame(introLoop);
+    }
+
+    // === MAIN MATRIX LOOP ===
     let lastFrameTime = 0;
-    function loop(ts) {
-      requestAnimationFrame(loop);
+    function mainLoop(ts) {
+      if (currentScreen !== 'matrix' || !matrixAnimationRunning) return;
+      
+      requestAnimationFrame(mainLoop);
 
       // Ограничение FPS
       if (ts - lastFrameTime < (1000 / FPS)) return;
       lastFrameTime = ts;
 
-      if (!COLS || !ROWS) return;
+      if (!COLS || !ROWS || !cameraActive) return;
 
       // 1) Затухание только шлейфов «дождя» (предыдущего кадра)
       //    Потом перерисуем базовое ASCII-изображение полностью.
@@ -328,8 +839,107 @@
       }
     }
 
+    // === MOBILE UTILITY FUNCTIONS ===
+    function setupMobileOptimizations() {
+      // Battery saving when page becomes hidden
+      visibilityChangeHandler = () => {
+        if (document.hidden) {
+          // Pause animations to save battery
+          if (matrixAnimationRunning && currentScreen === 'matrix') {
+            matrixAnimationRunning = false;
+          }
+        } else {
+          // Resume animations when page becomes visible
+          if (currentScreen === 'matrix' && cameraActive && !matrixAnimationRunning) {
+            matrixAnimationRunning = true;
+            requestAnimationFrame(mainLoop);
+          }
+        }
+      };
+      
+      document.addEventListener('visibilitychange', visibilityChangeHandler);
+      
+      // Prevent default touch behaviors
+      document.addEventListener('touchstart', (e) => {
+        if (e.target.tagName !== 'BUTTON') {
+          e.preventDefault();
+        }
+      }, { passive: false });
+      
+      document.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+      }, { passive: false });
+    }
+    
+    // === MOBILE CONTROL HANDLERS ===
+    function setupMobileControls() {
+      if (!isMobile) return;
+      
+      toggleRainBtn.addEventListener('click', () => {
+        showRain = !showRain;
+        toggleRainBtn.style.background = showRain ? 
+          'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
+      });
+      
+      toggleEnhanceBtn.addEventListener('click', () => {
+        enhancedMode = !enhancedMode;
+        toggleEnhanceBtn.style.background = enhancedMode ? 
+          'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
+      });
+      
+      // Set initial states
+      toggleEnhanceBtn.style.background = enhancedMode ? 
+        'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
+      toggleRainBtn.style.background = showRain ? 
+        'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
+      
+      toggleFullscreenBtn.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+      
+      cameraSwitchBtn.addEventListener('click', () => {
+        switchCamera();
+      });
+      
+      // Touch feedback
+      [toggleRainBtn, toggleEnhanceBtn, toggleFullscreenBtn, cameraSwitchBtn].forEach(btn => {
+        btn.addEventListener('touchstart', () => {
+          btn.style.transform = 'scale(0.95)';
+        });
+        
+        btn.addEventListener('touchend', () => {
+          btn.style.transform = 'scale(1)';
+        });
+      });
+    }
+
+    // === INITIALIZATION ===
+    function initApp() {
+      setupIntroCanvas();
+      
+      // Setup mobile optimizations
+      if (isMobile) {
+        setupMobileOptimizations();
+        setupMobileControls();
+      }
+      
+      // Start intro animation
+      currentScreen = 'intro';
+      introAnimationRunning = true;
+      requestAnimationFrame(introLoop);
+      
+      // Event listeners
+      enterMatrixBtn.addEventListener('click', enterMatrix);
+    }
+
     // --- Управление клавишами ---
     document.addEventListener('keydown', (e) => {
+      if (currentScreen !== 'matrix') return;
+      
       switch(e.key.toLowerCase()) {
         case 'r':
           showRain = !showRain;
@@ -348,6 +958,27 @@
           break;
       }
     });
+    
+    // === CLEANUP ===
+    function cleanup() {
+      if (currentStream) {
+        currentStream.getTracks().forEach(track => track.stop());
+      }
+      
+      if (visibilityChangeHandler) {
+        document.removeEventListener('visibilitychange', visibilityChangeHandler);
+      }
+      
+      matrixAnimationRunning = false;
+      introAnimationRunning = false;
+    }
+    
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', cleanup);
+    window.addEventListener('pagehide', cleanup);
+    
+    // Start the app
+    initApp();
   </script>
 </body>
 </html>
