@@ -1,1378 +1,747 @@
 <!DOCTYPE html>
-<html lang="en">
+
+<html lang="ru">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover"/>
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#000000">
-  <title>MATRIX</title>
-  <style>
-    html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
-      background: #000;
-      color: #0f0;
-      font-family: 'Courier New', monospace;
-      /* Mobile optimizations */
-      -webkit-touch-callout: none;
-      -webkit-user-select: none;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      /* Safe area for notched devices */
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-    }
-    
-    /* === INTRO SCREEN === */
-    #introScreen {
-      position: fixed;
-      inset: 0;
-      z-index: 1000;
-      background: #000;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      opacity: 1;
-      transition: all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-    
-    #introScreen.fade-out {
-      opacity: 0;
-      transform: scale(0.95);
-      pointer-events: none;
-    }
-    
-    #introScreen .matrix-bg {
-      position: absolute;
-      inset: 0;
-      z-index: -1;
-    }
-    
-    #introScreen .content {
-      text-align: center;
-      transform: translateY(0);
-      opacity: 1;
-      transition: all 0.8s ease-out;
-      animation: introGlow 2s ease-in-out infinite alternate;
-    }
-    
-    #introScreen .author-name {
-      font-size: clamp(2rem, 8vw, 4rem);
-      font-weight: bold;
-      color: #00ff41;
-      text-shadow: 0 0 20px #00ff41, 0 0 40px #00ff41, 0 0 60px #00ff41;
-      letter-spacing: 0.1em;
-      margin-bottom: 0.5rem;
-      text-transform: uppercase;
-    }
-    
-    #introScreen .author-surname {
-      font-size: clamp(1.5rem, 6vw, 3rem);
-      font-weight: normal;
-      color: #00cc33;
-      text-shadow: 0 0 15px #00cc33, 0 0 30px #00cc33;
-      letter-spacing: 0.15em;
-      margin-bottom: 3rem;
-      text-transform: uppercase;
-    }
-    
-    #enterMatrixBtn {
-      padding: 20px 60px;
-      background: linear-gradient(45deg, #001100, #003300);
-      border: 2px solid #00ff41;
-      color: #00ff41;
-      font-size: clamp(1rem, 3vw, 1.5rem);
-      font-weight: bold;
-      text-transform: uppercase;
-      letter-spacing: 0.2em;
-      cursor: pointer;
-      position: relative;
-      overflow: hidden;
-      border-radius: 0;
-      transition: all 0.3s ease;
-      font-family: inherit;
-      /* Mobile touch optimization */
-      min-height: 44px; /* Apple's minimum touch target */
-      min-width: 120px;
-      -webkit-touch-callout: none;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-    
-    #enterMatrixBtn::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(0,255,65,0.2), transparent);
-      transition: left 0.5s;
-    }
-    
-    #enterMatrixBtn:hover::before {
-      left: 100%;
-    }
-    
-    #enterMatrixBtn:hover,
-    #enterMatrixBtn:focus {
-      box-shadow: 0 0 30px #00ff41;
-      transform: scale(1.05);
-      color: #fff;
-      outline: none;
-    }
-    
-    /* Mobile active states */
-    #enterMatrixBtn:active {
-      transform: scale(0.98);
-      box-shadow: 0 0 20px #00ff41;
-    }
-    
-    @media (hover: none) and (pointer: coarse) {
-      /* Mobile-specific hover alternative */
-      #enterMatrixBtn:active {
-        background: linear-gradient(45deg, #002200, #004400);
-      }
-    }
-    
-    @keyframes introGlow {
-      0% { filter: brightness(1) contrast(1); }
-      100% { filter: brightness(1.1) contrast(1.2); }
-    }
-    
-    /* === MAIN SCREEN === */
-    #mainScreen {
-      position: fixed;
-      inset: 0;
-      z-index: 100;
-      opacity: 0;
-      transform: scale(1.1);
-      transition: all 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-    }
-    
-    /* Ensure smooth transitions between animation states */
-    #mainScreen.matrix-reveal {
-      transition: none;
-    }
-    
-    #mainScreen.active {
-      opacity: 1;
-      transform: scale(1);
-      transition: all 0.5s ease;
-      display: block !important;
-    }
-    
-    #mainScreen.matrix-reveal {
-      animation: matrixReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
-      transition: none !important;
-    }
-    
-    #mainScreen.matrix-reveal canvas {
-      animation: canvasReveal 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-    
-    #mainScreen.active canvas {
-      animation: canvasFinalize 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-      transition: all 0.5s ease, box-shadow 1.5s ease;
-    }
-    
-    @keyframes canvasReveal {
-      0% {
-        opacity: 0;
-        transform: scale(0.05) rotate(-5deg);
-        filter: brightness(0.05) contrast(0.3) blur(5px);
-      }
-      50% {
-        opacity: 0.5;
-        transform: scale(0.5) rotate(-2deg);
-        filter: brightness(0.5) contrast(0.6) blur(2px);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-        filter: brightness(1) contrast(1) blur(0px);
-      }
-    }
-    
-    @keyframes canvasFinalize {
-      0% {
-        filter: brightness(1) contrast(1);
-      }
-      50% {
-        filter: brightness(1.1) contrast(1.1);
-      }
-      100% {
-        filter: brightness(1) contrast(1);
-      }
-    }
-    
-    @keyframes matrixReveal {
-      0% {
-        opacity: 0;
-        transform: scale(0.1) rotate(-3deg);
-        filter: brightness(0.1) contrast(0.5);
-      }
-      50% {
-        opacity: 0.5;
-        transform: scale(0.6) rotate(-1deg);
-        filter: brightness(0.6) contrast(0.8);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) rotate(0deg);
-        filter: brightness(1) contrast(1);
-      }
-    }
-    
-    canvas {
-      display: block !important;
-      width: 100vw;
-      height: 100vh;
-      position: relative;
-      z-index: 1;
-    }
-    #err {
-      position: fixed;
-      bottom: 8px; left: 8px;
-      right: 8px;
-      color: #f55;
-      font: 12px/1.4 monospace;
-      opacity: .9;
-      pointer-events: none;
-      z-index: 200;
-    }
-    
-    #controls {
-      position: fixed;
-      top: 8px; right: 8px;
-      color: #00ff88;
-      font: 11px/1.3 monospace;
-      opacity: .8;
-      pointer-events: none;
-      background: rgba(0,0,0,0.3);
-      padding: 8px;
-      border-radius: 4px;
-      z-index: 200;
-      transform: translateY(0);
-      transition: all 0.5s ease;
-    }
-    
-    #controls.hidden {
-      transform: translateY(-100px);
-      opacity: 0;
-    }
-    
-    #controls:not(.hidden) {
-      animation: controlsSlideIn 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-    
-    @keyframes controlsSlideIn {
-      0% {
-        transform: translateY(-50px);
-        opacity: 0;
-      }
-      100% {
-        transform: translateY(0);
-        opacity: 0.8;
-      }
-    }
-    
-    .key {
-      color: #88ff88;
-      font-weight: bold;
-    }
-    
-    /* === LOADING OVERLAY === */
-    #loadingOverlay {
-      position: fixed;
-      inset: 0;
-      background: #000;
-      z-index: 2000;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      opacity: 1;
-      transition: all 0.8s ease;
-    }
-    
-    /* Ensure smooth transitions between animation states */
-    #loadingOverlay.matrix-entrance {
-      transition: none;
-    }
-    
-    #loadingOverlay.hidden {
-      opacity: 0;
-      pointer-events: none;
-    }
-    
-    /* === MATRIX ENTRANCE ANIMATION === */
-    #loadingOverlay.matrix-entrance {
-      animation: matrixEntrance 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards !important;
-      transition: none !important;
-    }
-    
-    @keyframes matrixEntrance {
-      0% {
-        transform: scale(1) rotate(0deg);
-        filter: brightness(1) contrast(1);
-      }
-      50% {
-        transform: scale(1.5) rotate(2deg);
-        filter: brightness(1.3) contrast(1.2);
-      }
-      100% {
-        transform: scale(3) rotate(5deg);
-        filter: brightness(2) contrast(1.5);
-        opacity: 0;
-      }
-    }
-    
-    .loading-text {
-      color: #00ff41;
-      font-size: 1.5rem;
-      text-transform: uppercase;
-      letter-spacing: 0.3em;
-      animation: loadingPulse 1.5s ease-in-out infinite;
-    }
-    
-    /* Loading text also participates in matrix entrance */
-    #loadingOverlay.matrix-entrance .loading-text {
-      animation: loadingTextEntrance 2s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-    
-    @keyframes loadingTextEntrance {
-      0% {
-        transform: scale(1) rotate(0deg);
-        filter: brightness(1) hue-rotate(0deg);
-      }
-      50% {
-        transform: scale(1.3) rotate(3deg);
-        filter: brightness(1.4) hue-rotate(45deg);
-      }
-      100% {
-        transform: scale(2) rotate(6deg);
-        filter: brightness(2) hue-rotate(90deg);
-        opacity: 0;
-      }
-    }
-    
-    @keyframes loadingPulse {
-      0%, 100% { opacity: 0.6; transform: scale(1); }
-      50% { opacity: 1; transform: scale(1.05); }
-    }
-    
-    /* === MOBILE CONTROLS === */
-    #mobileControls {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: none;
-      flex-direction: row;
-      gap: 15px;
-      z-index: 300;
-      opacity: 0;
-      transition: opacity 0.5s ease;
-    }
-    
-    #mobileControls.visible {
-      opacity: 1;
-      animation: mobileControlsSlideUp 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-    }
-    
-    @keyframes mobileControlsSlideUp {
-      0% {
-        transform: translateX(-50%) translateY(50px);
-        opacity: 0;
-      }
-      100% {
-        transform: translateX(-50%) translateY(0);
-        opacity: 1;
-      }
-    }
-    
-    .mobile-btn {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      background: rgba(0,255,65,0.2);
-      border: 1px solid #00ff41;
-      color: #00ff41;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 12px;
-      font-weight: bold;
-      font-family: inherit;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      user-select: none;
-      -webkit-tap-highlight-color: transparent;
-    }
-    
-    .mobile-btn:active {
-      background: rgba(0,255,65,0.4);
-      transform: scale(0.95);
-    }
-    
-    /* === ACCESSIBILITY === */
-    @media (prefers-reduced-motion: reduce) {
-      #loadingOverlay.matrix-entrance,
-      #mainScreen.matrix-reveal,
-      #loadingOverlay.matrix-entrance .loading-text,
-      #controls:not(.hidden),
-      #mobileControls.visible,
-      #mainScreen.matrix-reveal canvas,
-      #mainScreen.active canvas {
-        animation: none !important;
-        transition: opacity 0.3s ease !important;
-      }
-      
-      #loadingOverlay.matrix-entrance {
-        opacity: 0 !important;
-      }
-      
-      #mainScreen.matrix-reveal {
-        opacity: 1 !important;
-        transform: scale(1) !important;
-      }
-      
-      #mainScreen.matrix-reveal canvas,
-      #mainScreen.active canvas {
-        opacity: 1 !important;
-        transform: scale(1) !important;
-        filter: brightness(1) contrast(1) blur(0px) !important;
-      }
-      
-      #loadingOverlay.matrix-entrance .loading-text {
-        opacity: 0 !important;
-      }
-      
-      #controls:not(.hidden),
-      #mobileControls.visible {
-        opacity: 1 !important;
-        transform: translateY(0) !important;
-      }
-    }
-    
-    /* === RESPONSIVE === */
-    @media (max-width: 768px) {
-      html, body {
-        /* Additional mobile optimization */
-        overscroll-behavior: none;
-      }
-      
-      #introScreen .author-name {
-        font-size: clamp(1.5rem, 12vw, 2.8rem);
-        text-shadow: 0 0 15px #00ff41, 0 0 30px #00ff41, 0 0 45px #00ff41;
-      }
-      
-      #introScreen .author-surname {
-        font-size: clamp(1rem, 10vw, 2.2rem);
-        margin-bottom: 2.5rem;
-        text-shadow: 0 0 10px #00cc33, 0 0 20px #00cc33;
-      }
-      
-      #enterMatrixBtn {
-        padding: 18px 45px;
-        font-size: clamp(1rem, 4.5vw, 1.3rem);
-        min-height: 50px;
-      }
-      
-      #controls {
-        display: none; /* Hide keyboard controls on mobile */
-      }
-      
-      #mobileControls {
-        display: flex;
-      }
-    }
-    
-    @media (max-width: 480px) {
-      #introScreen .content {
-        padding: 0 20px;
-      }
-      
-      #introScreen .author-name {
-        font-size: clamp(1.2rem, 15vw, 2.2rem);
-        margin-bottom: 0.3rem;
-      }
-      
-      #introScreen .author-surname {
-        font-size: clamp(0.9rem, 12vw, 1.8rem);
-        margin-bottom: 2rem;
-      }
-      
-      #enterMatrixBtn {
-        padding: 16px 35px;
-        font-size: clamp(0.9rem, 5vw, 1.1rem);
-        letter-spacing: 0.1em;
-      }
-      
-      .mobile-btn {
-        width: 45px;
-        height: 45px;
-        font-size: 11px;
-      }
-    }
-    
-    /* Landscape orientation on mobile */
-    @media (max-height: 500px) and (orientation: landscape) {
-      #introScreen .author-name {
-        font-size: clamp(1rem, 8vh, 1.8rem);
-      }
-      
-      #introScreen .author-surname {
-        font-size: clamp(0.8rem, 6vh, 1.4rem);
-        margin-bottom: 1.5rem;
-      }
-      
-      #enterMatrixBtn {
-        padding: 12px 30px;
-        font-size: clamp(0.8rem, 4vh, 1rem);
-      }
-    }
-  </style>
-</head>
-<body>
-  <!-- INTRO SCREEN -->
-  <div id="introScreen">
-    <canvas id="introBg" class="matrix-bg"></canvas>
-    <div class="content">
-      <div class="author-name">ILYA</div>
-      <div class="author-surname">IVANTSOV</div>
-      <button id="enterMatrixBtn">ENTER THE MATRIX</button>
-    </div>
-  </div>
-  
-  <!-- LOADING OVERLAY -->
-  <div id="loadingOverlay" class="hidden">
-    <div class="loading-text">Initializing Neural Interface...</div>
-  </div>
-  
-  <!-- MAIN SCREEN -->
-  <div id="mainScreen">
-    <div id="err" aria-live="polite"></div>
-    <div id="controls" class="hidden">
-      <span class="key">R</span> - toggle rain effect<br>
-      <span class="key">E</span> - toggle enhancement<br>
-      <span class="key">F</span> - toggle fullscreen
-    </div>
-    
-    <!-- MOBILE CONTROLS -->
-    <div id="mobileControls">
-      <button class="mobile-btn" id="toggleRainBtn" title="Toggle Rain">R</button>
-      <button class="mobile-btn" id="toggleEnhanceBtn" title="Toggle Enhancement">E</button>
-      <button class="mobile-btn" id="toggleFullscreenBtn" title="Toggle Fullscreen">⛶</button>
-      <button class="mobile-btn" id="cameraSwitchBtn" title="Switch Camera">📷</button>
-    </div>
-    
-    <canvas id="q"></canvas>
-  </div>
-
-  <script>
-    // --- UI Elements ---
-    const introScreen = document.getElementById('introScreen');
-    const mainScreen = document.getElementById('mainScreen');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const enterMatrixBtn = document.getElementById('enterMatrixBtn');
-    const controlsPanel = document.getElementById('controls');
-    const mobileControls = document.getElementById('mobileControls');
-    const errBox = document.getElementById('err');
-    
-    let isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-
-    // Mobile control buttons
-    const toggleRainBtn = document.getElementById('toggleRainBtn');
-    const toggleEnhanceBtn = document.getElementById('toggleEnhanceBtn');
-    const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn');
-    const cameraSwitchBtn = document.getElementById('cameraSwitchBtn');
-    
-    // --- Canvas Elements ---
-    const canvas = document.getElementById('q');
-    const ctx = canvas.getContext('2d', { alpha: false });
-    const introBgCanvas = document.getElementById('introBg');
-    const introBgCtx = introBgCanvas.getContext('2d', { alpha: false });
-
-    // Скрытое <video> для потока камеры
-    const video = document.createElement('video');
-    video.playsInline = true; // iOS
-    video.muted = true;       // авто-воспроизведение
-    video.autoplay = true;    // авто-воспроизведение
-
-    // Буфер низкого разрешения для сэмплинга яркости (по размеру сетки символов)
-    const sample = document.createElement('canvas');
-    const sctx   = sample.getContext('2d', { willReadFrequently: true });
-
-    // --- Настройки ASCII/матрицы ---
-    const FONT_SIZE = isMobile ? 10 : 8; // немного крупнее на мобильных для читаемости
-    // Оптимизированный набор символов по визуальной плотности (от светлого к темному)
-    const CHARSET = " .`',^:;~\"-!|\\/()*+?><}{][Il1ifjrxnuvczXYUJCLQ0OZmwqpdbkhao#MW&8%B@$█";
-    const FPS = isMobile ? 24 : 30;        // снижение FPS на мобильных для экономии батареи
-    const FADE_ALPHA = isMobile ? 0.06 : 0.04; // слегка больше на мобильных
-    
-    // Настройки качества изображения
-    const CONTRAST = 1.3;   // увеличение контрастности
-    const BRIGHTNESS = 0.1; // небольшое увеличение яркости
-    const GAMMA = 0.8;      // гамма-коррекция для лучшей видимости деталей
-    
-    // Режимы отображения
-    let showRain = false;      // можно отключить дождь для лучшей читаемости
-    let enhancedMode = true;  // улучшенная обработка изображения
-    
-    // === СОСТОЯНИЯ ПРИЛОЖЕНИЯ ===
-    let currentScreen = 'intro'; // 'intro', 'loading', 'matrix'
-    let introAnimationRunning = false;
-    let matrixAnimationRunning = false;
-    let cameraActive = false;
-    
-    // === MOBILE STATE ===
-    let currentCameraFacing = 'user'; // 'user' or 'environment'
-    let currentStream = null;
-    let visibilityChangeHandler = null;
-
-    let dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-    let W = 0, H = 0, COLS = 0, ROWS = 0;
-    let introW = 0, introH = 0, introCOLS = 0, introROWS = 0;
-
-    // Позиции "дождя" для каждого столбца (в строках сетки)
-    let drops = [];
-    let introDrops = [];
-
-    // Градиенты для неонового зелёного
-    let neonGradient = null;
-    let introGradient = null;
-
-    // === SETUP INTRO CANVAS ===
-    function setupIntroCanvas() {
-      dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      
-      introBgCanvas.width = Math.floor(w * dpr);
-      introBgCanvas.height = Math.floor(h * dpr);
-      introBgCanvas.style.width = w + 'px';
-      introBgCanvas.style.height = h + 'px';
-      introBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      
-      introW = w; introH = h;
-      introCOLS = Math.floor(introW / FONT_SIZE);
-      introROWS = Math.floor(introH / FONT_SIZE);
-      
-      // Градиент для intro
-      introGradient = introBgCtx.createLinearGradient(0, 0, 0, introH);
-      introGradient.addColorStop(0.00, '#001100');
-      introGradient.addColorStop(0.35, '#003322');
-      introGradient.addColorStop(0.65, '#004433');
-      introGradient.addColorStop(1.00, '#005544');
-      
-      // Инициализация дождя для intro
-      introDrops = new Array(introCOLS).fill(0).map(() => Math.floor(Math.random() * introROWS) * -1);
-      
-      introBgCtx.font = `${FONT_SIZE}px monospace`;
-      introBgCtx.textBaseline = 'top';
-    }
-
-    // === SETUP MAIN CANVAS ===
-    function setCanvasSize() {
-      dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      canvas.width  = Math.floor(w * dpr);
-      canvas.height = Math.floor(h * dpr);
-      canvas.style.width = w + 'px';
-      canvas.style.height = h + 'px';
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      W = w; H = h;
-
-      // Сетка символов
-      COLS = Math.floor(W / FONT_SIZE);
-      ROWS = Math.floor(H / FONT_SIZE);
-
-      // Буфер сэмплинга (по сетке)
-      sample.width  = COLS;
-      sample.height = ROWS;
-
-      // Градиент вдоль вертикали
-      neonGradient = ctx.createLinearGradient(0, 0, 0, H);
-      neonGradient.addColorStop(0.00, '#003300');
-      neonGradient.addColorStop(0.35, '#00aa44');
-      neonGradient.addColorStop(0.65, '#00dd55');
-      neonGradient.addColorStop(1.00, '#00ff66');
-
-      // Инициализация «дождя»
-      drops = new Array(COLS).fill(0).map(() => Math.floor(Math.random() * ROWS) * -1);
-      ctx.font = `${FONT_SIZE}px monospace`;
-      ctx.textBaseline = 'top';
-      
-      console.log('Canvas size set:', {
-        W, H, COLS, ROWS, FONT_SIZE,
-        canvasWidth: canvas.width,
-        canvasHeight: canvas.height,
-        sampleWidth: sample.width,
-        sampleHeight: sample.height
-      });
-    }
-
-    window.addEventListener('resize', () => {
-      if (currentScreen === 'intro') {
-        setupIntroCanvas();
-      } else {
-        setCanvasSize();
-      }
-    });
-
-    // === TRANSITIONS BETWEEN SCREENS ===
-    async function enterMatrix() {
-      if (currentScreen !== 'intro') return;
-      
-      currentScreen = 'loading';
-      
-      // Show loading overlay
-      loadingOverlay.classList.remove('hidden');
-      
-      // Fade out intro screen
-      introScreen.classList.add('fade-out');
-      
-      // Wait for intro fade out
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      try {
-        // Start camera in background
-        const cameraPromise = startCamera();
-        
-        // Start matrix entrance animation (loading overlay проваливается в экран)
-        loadingOverlay.classList.add('matrix-entrance');
-        
-        // Wait for matrix entrance animation to complete
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Hide loading overlay after animation
-        loadingOverlay.classList.add('hidden');
-        
-        // Wait for camera to be ready
-        await cameraPromise;
-        
-        // Ensure canvas is properly sized
-        setCanvasSize();
-        
-        // Transition to matrix screen with reveal animation
-        currentScreen = 'matrix';
-        console.log('Current screen set to:', currentScreen);
-        mainScreen.classList.add('matrix-reveal');
-        
-        // Wait for matrix reveal animation
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        // Remove animation classes and show controls
-        mainScreen.classList.remove('matrix-reveal');
-        mainScreen.classList.add('active');
-        
-        // Ensure matrix animation is running
-        if (!matrixAnimationRunning) {
-          matrixAnimationRunning = true;
-          console.log('Starting matrix animation loop');
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#000000">
+    <title>MATRIX</title>
+    <style>
+        :root {
+            --matrix-green: #00ff41;
+            --matrix-green-2: #00cc33;
+            --matrix-green-soft: #00ff88;
+            --bg: #000;
+            --text: #0f0
         }
-        
-        // Always start the animation loop
-        console.log('Requesting animation frame');
-        requestAnimationFrame(mainLoop);
-        
-        // Show controls with a slight delay for better UX
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        if (isMobile) {
-          mobileControls.classList.add('visible');
-        } else {
-          controlsPanel.classList.remove('hidden');
+
+        html,
+        body {
+            margin: 0;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Courier New', monospace;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)
         }
-        
-        // Add a subtle glow effect to the canvas after animation
-        const canvas = document.getElementById('q');
-        if (canvas) {
-          canvas.style.boxShadow = '0 0 30px rgba(0, 255, 65, 0.2)';
-          setTimeout(() => {
-            canvas.style.boxShadow = 'none';
-          }, 1500);
+
+        #introScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity 1.5s cubic-bezier(.25, .46, .45, .94), transform 1.5s cubic-bezier(.25, .46, .45, .94)
         }
-        
-        // Log success for debugging
-        console.log('Matrix transition completed successfully');
-        
-      } catch (error) {
-        // Handle camera error - back to intro
-        currentScreen = 'intro';
-        loadingOverlay.classList.remove('matrix-entrance');
-        loadingOverlay.classList.add('hidden');
-        introScreen.classList.remove('fade-out');
-        errBox.textContent = 'Camera access failed: ' + (error.message || error);
-        
-        // Reset any animation states
-        mainScreen.classList.remove('matrix-reveal');
-      }
-    }
 
-    // === CAMERA FUNCTIONS ===
-    async function startCamera(facingMode = currentCameraFacing) {
-      try {
-        // Stop existing stream
-        if (currentStream) {
-          currentStream.getTracks().forEach(track => track.stop());
+        #introScreen.fade-out {
+            opacity: 0;
+            transform: scale(.95);
+            pointer-events: none
         }
-        
-        const constraints = {
-          video: {
-            facingMode: facingMode,
-            frameRate: { ideal: isMobile ? 24 : 30 }
-          },
-          audio: false
-        };
-        
-        // Different resolution constraints for mobile vs desktop
-        if (isMobile) {
-          constraints.video.width = { ideal: 1280, min: 640 };
-          constraints.video.height = { ideal: 720, min: 480 };
-        } else {
-          constraints.video.width = { ideal: 1920, min: 1280 };
-          constraints.video.height = { ideal: 1080, min: 720 };
+
+        #introScreen .matrix-bg {
+            position: absolute;
+            inset: 0;
+            z-index: -1
         }
-        
-        console.log('Requesting camera access with constraints:', constraints);
-        const stream = await navigator.mediaDevices.getUserMedia(constraints);
-        currentStream = stream;
-        currentCameraFacing = facingMode;
-        video.srcObject = stream;
 
-        // Ждём метаданные, чтобы появились videoWidth/Height
-        await new Promise((res) => {
-          if (video.readyState >= 2) res();
-          else video.onloadedmetadata = res;
-        });
-
-        console.log('Video metadata loaded:', {
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          readyState: video.readyState
-        });
-
-        await video.play().catch((e) => console.log('Video play error:', e)); // iOS иногда требует жест
-        setCanvasSize();
-        cameraActive = true;
-        lastFrameTime = 0;
-        
-        console.log('Camera activated successfully:', {
-          cameraActive,
-          COLS,
-          ROWS,
-          W,
-          H
-        });
-        
-        if (!matrixAnimationRunning) {
-          matrixAnimationRunning = true;
-          requestAnimationFrame(mainLoop);
+        #introScreen .content {
+            text-align: center;
+            transform: translateY(0);
+            opacity: 1;
+            transition: all .8s ease-out;
+            animation: introGlow 2s ease-in-out infinite alternate
         }
-      } catch (error) {
-        console.log('Camera access failed:', error);
-        // Create a fallback canvas with matrix effect when camera is not available
-        setCanvasSize();
-        cameraActive = false;
-        
-        console.log('Using fallback matrix pattern:', {
-          cameraActive,
-          COLS,
-          ROWS,
-          W,
-          H
-        });
-        
-        // Start matrix animation loop without camera
-        if (!matrixAnimationRunning) {
-          matrixAnimationRunning = true;
-          requestAnimationFrame(mainLoop);
+
+        #introScreen.cursorless {
+            cursor: none
         }
-      }
-    }
-    
-    // === CAMERA SWITCHING ===
-    async function switchCamera() {
-      if (!cameraActive) return;
-      
-      const newFacing = currentCameraFacing === 'user' ? 'environment' : 'user';
-      
-      try {
-        await startCamera(newFacing);
-      } catch (error) {
-        console.log('Could not switch camera:', error);
-        // Fallback to original camera
-        if (currentCameraFacing !== newFacing) {
-          await startCamera(currentCameraFacing);
+
+        .magnifier {
+            position: fixed;
+            width: 120px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 1001;
+            transform: translate(-50%, -50%);
+            transition: all .1s ease-out;
+            opacity: 0;
+            clip-path: ellipse(50% 50% at 50% 50%);
+            backdrop-filter: blur(.3px) brightness(1.15) contrast(1.25) saturate(1.15);
+            background: radial-gradient(ellipse at center, rgba(255, 255, 255, .08) 0, rgba(255, 255, 255, .04) 25%, rgba(255, 255, 255, .02) 50%, rgba(255, 255, 255, .01) 75%, transparent 90%);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, .08), 0 0 25px rgba(0, 255, 65, .15)
         }
-      }
-    }
 
-    // --- Улучшенная обработка изображения ---
-    function enhanceImage(luma01) {
-      if (!enhancedMode) return luma01;
-      
-      // Применяем яркость и контрастность
-      let enhanced = (luma01 + BRIGHTNESS) * CONTRAST;
-      
-      // Гамма-коррекция для лучшей видимости деталей в средних тонах  
-      enhanced = Math.pow(Math.max(0, Math.min(1, enhanced)), GAMMA);
-      
-      return enhanced;
-    }
-
-    // --- Маппинг яркости -> символ ---
-    function charForLuma(luma01) {
-      // Применяем улучшения изображения
-      const enhanced = enhanceImage(luma01);
-      
-      // Нелинейное маппинг для лучшего использования диапазона символов
-      const curved = Math.pow(enhanced, 0.7); // S-образная кривая
-      
-      const i = Math.min(CHARSET.length - 1, Math.max(0, Math.floor(curved * (CHARSET.length - 1))));
-      return CHARSET[i];
-    }
-
-    // Получить массив яркостей (0..1) для всей сетки из текущего кадра видео
-    function getGridLumas() {
-      if (!cameraActive) {
-        // Fallback: generate matrix-style pattern when camera is not available
-        const lumas = new Float32Array(COLS * ROWS);
-        const time = Date.now() * 0.001;
-        
-        for (let y = 0; y < ROWS; y++) {
-          for (let x = 0; x < COLS; x++) {
-            const index = y * COLS + x;
-            // Create animated matrix pattern
-            const noise = Math.sin(x * 0.1 + time) * Math.cos(y * 0.1 + time * 0.7);
-            const wave = Math.sin(x * 0.05 + time * 2) * Math.cos(y * 0.05 + time * 1.5);
-            lumas[index] = Math.max(0, Math.min(1, (noise + wave) * 0.3 + 0.5));
-          }
+        .magnifier.active {
+            opacity: 1
         }
-        return lumas;
-      }
-      
-      // Debug: check video state
-      if (!video.videoWidth || !video.videoHeight) {
-        console.log('Video not ready:', {
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          readyState: video.readyState
-        });
-        // Return fallback pattern if video is not ready
-        const lumas = new Float32Array(COLS * ROWS);
-        const time = Date.now() * 0.001;
-        for (let y = 0; y < ROWS; y++) {
-          for (let x = 0; x < COLS; x++) {
-            const index = y * COLS + x;
-            const noise = Math.sin(x * 0.1 + time) * Math.cos(y * 0.1 + time * 0.7);
-            const wave = Math.sin(x * 0.05 + time * 2) * Math.cos(y * 0.05 + time * 1.5);
-            lumas[index] = Math.max(0, Math.min(1, (noise + wave) * 0.3 + 0.5));
-          }
+
+        .magnifier.glitch {
+            animation: magnifierGlitch .3s ease-in-out
         }
-        return lumas;
-      }
-      
-      // Отрисовываем текущий видеокадр в маленький буфер размером COLS x ROWS
-      // это эффективно масштабирует и «усредняет» пиксели под одну «ячейку символа»
-      // Сохраняем пропорции: заполняем весь буфер (cover)
-      const vW = video.videoWidth;
-      const vH = video.videoHeight;
-      const srcRatio = vW / vH;
-      const dstRatio = COLS / ROWS;
 
-      let sx = 0, sy = 0, sw = vW, sh = vH;
-      if (dstRatio > srcRatio) {
-        // раскладываем по ширине — обрезаем по высоте
-        sh = Math.floor(vW / dstRatio);
-        sy = Math.floor((vH - sh) / 2);
-      } else {
-        // раскладываем по высоте — обрезаем по ширине
-        sw = Math.floor(vH * dstRatio);
-        sx = Math.floor((vW - sw) / 2);
-      }
-
-      // Debug: log video processing
-      if (Math.random() < 0.01) { // Log 1% of the time to avoid spam
-        console.log('Processing video frame:', {
-          videoWidth: vW,
-          videoHeight: vH,
-          sampleWidth: COLS,
-          sampleHeight: ROWS,
-          sx, sy, sw, sh
-        });
-      }
-
-      // Улучшенное качество ресайза для лучшей четкости
-      sctx.imageSmoothingEnabled = true;
-      sctx.imageSmoothingQuality = 'high';
-      sctx.drawImage(video, sx, sy, sw, sh, 0, 0, COLS, ROWS);
-      const img = sctx.getImageData(0, 0, COLS, ROWS).data;
-
-      const lumas = new Float32Array(COLS * ROWS);
-      // Вычисляем яркость по Rec. 601: 0.299R + 0.587G + 0.114B
-      for (let i = 0, p = 0; i < img.length; i += 4, p++) {
-        const r = img[i], g = img[i+1], b = img[i+2];
-        lumas[p] = (0.299*r + 0.587*g + 0.114*b) / 255;
-      }
-      
-      // Debug: log some sample values
-      if (Math.random() < 0.01) {
-        console.log('Sample luma values:', {
-          first: lumas[0],
-          middle: lumas[Math.floor(lumas.length / 2)],
-          last: lumas[lumas.length - 1],
-          min: Math.min(...lumas),
-          max: Math.max(...lumas)
-        });
-      }
-      
-      return lumas;
-    }
-
-    // === INTRO ANIMATION ===
-    function renderIntroMatrixRain() {
-      if (!introCOLS || !introROWS) return;
-      
-      // Затухание предыдущего кадра
-      introBgCtx.fillStyle = 'rgba(0,0,0,0.05)';
-      introBgCtx.fillRect(0, 0, introW, introH);
-      
-      // Рендер дождя из символов
-      for (let x = 0; x < introCOLS; x++) {
-        let y = introDrops[x];
-        
-        if (y >= 0 && y < introROWS && Math.random() > 0.4) {
-          // Случайный символ
-          const ch = CHARSET[Math.floor(Math.random() * CHARSET.length)];
-          
-          // Голова капли - яркая
-          introBgCtx.save();
-          introBgCtx.fillStyle = '#00ff41';
-          introBgCtx.globalAlpha = 0.9;
-          introBgCtx.fillText(ch, x * FONT_SIZE, y * FONT_SIZE);
-          introBgCtx.restore();
-          
-          // Хвост
-          for (let t = 1; t <= 4; t++) {
-            const yy = y - t;
-            if (yy < 0) break;
-            const alpha = Math.max(0.1, 1 - t / 5);
-            introBgCtx.save();
-            introBgCtx.globalAlpha = alpha * 0.6;
-            introBgCtx.fillStyle = introGradient;
-            introBgCtx.fillText(ch, x * FONT_SIZE, yy * FONT_SIZE);
-            introBgCtx.restore();
-          }
+        .magnifier.glitch::before {
+            animation: magnifierGlitchBefore .3s ease-in-out
         }
-        
-        // Движение капли
-        introDrops[x] = y + 1;
-        
-        // Перезапуск капли
-        if (introDrops[x] * FONT_SIZE > introH && Math.random() > 0.98) {
-          introDrops[x] = Math.floor(-Math.random() * introROWS * 0.3);
+
+        .magnifier::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(ellipse at center, transparent 0, rgba(255, 255, 255, .02) 40%, rgba(255, 255, 255, .01) 70%, transparent 100%);
+            clip-path: ellipse(45% 45% at 50% 50%);
+            pointer-events: none
         }
-      }
-    }
-    
-    // === INTRO LOOP ===
-    let introLastTime = 0;
-    function introLoop(ts) {
-      if (currentScreen !== 'intro' || !introAnimationRunning) return;
-      
-      if (ts - introLastTime >= (1000 / FPS)) {
-        renderIntroMatrixRain();
-        introLastTime = ts;
-      }
-      
-      requestAnimationFrame(introLoop);
-    }
 
-    // === MAIN MATRIX LOOP ===
-    let lastFrameTime = 0;
-    function mainLoop(ts) {
-      // Debug: log mainLoop entry
-      if (ts % 1000 < 16) { // Log once per second
-        console.log('MainLoop entry:', {
-          currentScreen,
-          matrixAnimationRunning,
-          ts
-        });
-      }
-      
-      if (currentScreen !== 'matrix' || !matrixAnimationRunning) {
-        if (ts % 1000 < 16) {
-          console.log('MainLoop early return:', {
-            currentScreen,
-            matrixAnimationRunning
-          });
-        }
-        return;
-      }
-      
-      requestAnimationFrame(mainLoop);
-
-      // Ограничение FPS
-      if (ts - lastFrameTime < (1000 / FPS)) return;
-      lastFrameTime = ts;
-
-      // Debug: log canvas state
-      if (ts % 1000 < 16) { // Log once per second
-        console.log('MainLoop debug:', {
-          currentScreen,
-          matrixAnimationRunning,
-          COLS,
-          ROWS,
-          cameraActive,
-          videoWidth: video.videoWidth,
-          videoHeight: video.videoHeight,
-          readyState: video.readyState
-        });
-      }
-
-      if (!COLS || !ROWS) {
-        console.log('Canvas not initialized:', { COLS, ROWS });
-        return;
-      }
-      
-      if (!cameraActive) {
-        console.log('Camera not active, using fallback pattern');
-        // Continue with fallback pattern
-      } else {
-        console.log('Camera active, processing video frame');
-      }
-
-      // 1) Затухание только шлейфов «дождя» (предыдущего кадра)
-      //    Потом перерисуем базовое ASCII-изображение полностью.
-      if (showRain) {
-        ctx.fillStyle = `rgba(0,0,0,${FADE_ALPHA})`;
-        ctx.fillRect(0, 0, W, H);
-      } else {
-        // В режиме без дождя очищаем полностью для лучшей четкости
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, W, H);
-      }
-
-      // 2) Базовое ASCII-изображение из камеры (полностью, без альфы)
-      const lumas = getGridLumas();
-      ctx.fillStyle = neonGradient;
-      ctx.font = `${FONT_SIZE}px monospace`;
-      ctx.textBaseline = 'top';
-
-      // Debug: log rendering info
-      if (ts % 2000 < 16) { // Log every 2 seconds
-        console.log('Rendering frame:', {
-          lumasLength: lumas.length,
-          sampleValues: lumas.slice(0, 5),
-          canvasContext: !!ctx,
-          font: ctx.font,
-          canvasVisible: canvas.style.display !== 'none',
-          canvasOpacity: canvas.style.opacity,
-          canvasZIndex: canvas.style.zIndex
-        });
-      }
-
-      // Чтобы быстрее — проходим по строкам
-      for (let y = 0; y < ROWS; y++) {
-        const yPx = y * FONT_SIZE;
-        for (let x = 0; x < COLS; x++) {
-          const l = lumas[y * COLS + x];
-          const ch = charForLuma(l);
-          ctx.fillText(ch, x * FONT_SIZE, yPx);
-        }
-      }
-
-      // 3) «Дождь» из букв поверх (только если включен)
-      if (showRain) {
-        for (let x = 0; x < COLS; x++) {
-          let y = drops[x];
-          // Уменьшен шанс появления капель для менее навязчивого эффекта
-          if (y >= 0 && y < ROWS && Math.random() > 0.5) {
-            const l = lumas[(y * COLS) + x];
-            const ch = charForLuma(l);
-
-            // Голова капли - яркая
-            ctx.save();
-            ctx.globalCompositeOperation = 'lighter';
-            ctx.fillStyle = '#aaffaa';
-            ctx.fillText(ch, x * FONT_SIZE, y * FONT_SIZE);
-            ctx.restore();
-
-            // Более короткий хвост для меньшего засорения изображения
-            const tail = 3;
-            for (let t = 1; t <= tail; t++) {
-              const yy = y - t;
-              if (yy < 0) break;
-              const lt = lumas[(yy * COLS) + x];
-              const cht = charForLuma(lt);
-              const alpha = Math.max(0.05, 1 - t / (tail + 1));
-              ctx.save();
-              ctx.globalAlpha = alpha * 0.6; // Более прозрачный хвост
-              ctx.fillStyle = neonGradient;
-              ctx.fillText(cht, x * FONT_SIZE, yy * FONT_SIZE);
-              ctx.restore();
+        @keyframes magnifierGlitch {
+            0% {
+                transform: translate(-50%, -50%) scale(1);
+                backdrop-filter: blur(.3px) brightness(1.15) contrast(1.25) saturate(1.15)
             }
-          }
 
-          // Сдвиг капли вниз
-          drops[x] = y + 1;
+            25% {
+                transform: translate(-50%, -50%) scale(1.05);
+                backdrop-filter: blur(1px) brightness(1.3) contrast(1.4) saturate(1.3)
+            }
 
-          // Реже перезапускаем капли для меньшего количества "дождя"
-          if (drops[x] * FONT_SIZE > H && Math.random() > 0.985) {
-            drops[x] = Math.floor(-Math.random() * ROWS * 0.8);
-          }
+            50% {
+                transform: translate(-50%, -50%) scale(.95);
+                backdrop-filter: blur(.2px) brightness(.9) contrast(1) saturate(.9)
+            }
+
+            75% {
+                transform: translate(-50%, -50%) scale(1.1);
+                backdrop-filter: blur(1.5px) brightness(1.4) contrast(1.5) saturate(1.4)
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1);
+                backdrop-filter: blur(.3px) brightness(1.15) contrast(1.25) saturate(1.15)
+            }
         }
-      }
-    }
 
-    // === MOBILE UTILITY FUNCTIONS ===
-    function setupMobileOptimizations() {
-      // Battery saving when page becomes hidden
-      visibilityChangeHandler = () => {
-        if (document.hidden) {
-          // Pause animations to save battery
-          if (matrixAnimationRunning && currentScreen === 'matrix') {
-            matrixAnimationRunning = false;
-          }
-        } else {
-          // Resume animations when page becomes visible
-          if (currentScreen === 'matrix' && cameraActive && !matrixAnimationRunning) {
-            matrixAnimationRunning = true;
-            requestAnimationFrame(mainLoop);
-          }
-        }
-      };
-      
-      document.addEventListener('visibilitychange', visibilityChangeHandler);
-      
-      // Prevent default touch behaviors
-      document.addEventListener('touchstart', (e) => {
-        if (e.target.tagName !== 'BUTTON') {
-          e.preventDefault();
-        }
-      }, { passive: false });
-      
-      document.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-      }, { passive: false });
-    }
-    
-    // === MOBILE CONTROL HANDLERS ===
-    function setupMobileControls() {
-      if (!isMobile) return;
-      
-      toggleRainBtn.addEventListener('click', () => {
-        showRain = !showRain;
-        toggleRainBtn.style.background = showRain ? 
-          'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
-      });
-      
-      toggleEnhanceBtn.addEventListener('click', () => {
-        enhancedMode = !enhancedMode;
-        toggleEnhanceBtn.style.background = enhancedMode ? 
-          'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
-      });
-      
-      // Set initial states
-      toggleEnhanceBtn.style.background = enhancedMode ? 
-        'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
-      toggleRainBtn.style.background = showRain ? 
-        'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)';
-      
-      toggleFullscreenBtn.addEventListener('click', () => {
-        if (!document.fullscreenElement) {
-          document.documentElement.requestFullscreen();
-        } else {
-          document.exitFullscreen();
-        }
-      });
-      
-      cameraSwitchBtn.addEventListener('click', () => {
-        switchCamera();
-      });
-      
-      // Touch feedback
-      [toggleRainBtn, toggleEnhanceBtn, toggleFullscreenBtn, cameraSwitchBtn].forEach(btn => {
-        btn.addEventListener('touchstart', () => {
-          btn.style.transform = 'scale(0.95)';
-        });
-        
-        btn.addEventListener('touchend', () => {
-          btn.style.transform = 'scale(1)';
-        });
-      });
-    }
+        @keyframes magnifierGlitchBefore {
+            0% {
+                clip-path: ellipse(45% 45% at 50% 50%);
+                opacity: 1
+            }
 
-    // === INITIALIZATION ===
-    function initApp() {
-      setupIntroCanvas();
-      
-      // Setup mobile optimizations
-      if (isMobile) {
-        setupMobileOptimizations();
-        setupMobileControls();
-      }
-      
-      // Start intro animation
-      currentScreen = 'intro';
-      introAnimationRunning = true;
-      requestAnimationFrame(introLoop);
-      
-      // Event listeners
-      enterMatrixBtn.addEventListener('click', enterMatrix);
-    }
+            25% {
+                clip-path: ellipse(48% 42% at 52% 48%);
+                opacity: .8
+            }
 
-    // --- Управление клавишами ---
-    document.addEventListener('keydown', (e) => {
-      if (currentScreen !== 'matrix') return;
-      
-      switch(e.key.toLowerCase()) {
-        case 'r':
-          showRain = !showRain;
-          console.log('Rain effect:', showRain ? 'ON' : 'OFF');
-          break;
-        case 'e':
-          enhancedMode = !enhancedMode;
-          console.log('Enhanced mode:', enhancedMode ? 'ON' : 'OFF');
-          break;
-        case 'f':
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-          } else {
-            document.exitFullscreen();
-          }
-          break;
-      }
-    });
-    
-    // === CLEANUP ===
-    function cleanup() {
-      if (currentStream) {
-        currentStream.getTracks().forEach(track => track.stop());
-      }
-      
-      if (visibilityChangeHandler) {
-        document.removeEventListener('visibilitychange', visibilityChangeHandler);
-      }
-      
-      matrixAnimationRunning = false;
-      introAnimationRunning = false;
-    }
-    
-    // Cleanup on page unload
-    window.addEventListener('beforeunload', cleanup);
-    window.addEventListener('pagehide', cleanup);
-    
-    // Start the app
-    initApp();
-  </script>
+            50% {
+                clip-path: ellipse(42% 48% at 48% 52%);
+                opacity: .6
+            }
+
+            75% {
+                clip-path: ellipse(47% 43% at 51% 49%);
+                opacity: .9
+            }
+
+            100% {
+                clip-path: ellipse(45% 45% at 50% 50%);
+                opacity: 1
+            }
+        }
+
+        @media (max-width:768px) {
+            .magnifier {
+                display: none
+            }
+
+            #introScreen {
+                cursor: auto
+            }
+        }
+
+        #introScreen .author-name {
+            font-size: clamp(2rem, 8vw, 4rem);
+            font-weight: bold;
+            color: var(--matrix-green);
+            text-shadow: 0 0 20px var(--matrix-green), 0 0 40px var(--matrix-green), 0 0 60px var(--matrix-green);
+            letter-spacing: .1em;
+            margin-bottom: .5rem;
+            text-transform: uppercase
+        }
+
+        #introScreen .author-surname {
+            font-size: clamp(1.5rem, 6vw, 3rem);
+            font-weight: normal;
+            color: var(--matrix-green-2);
+            text-shadow: 0 0 15px var(--matrix-green-2), 0 0 30px var(--matrix-green-2);
+            letter-spacing: .15em;
+            margin-bottom: 3rem;
+            text-transform: uppercase
+        }
+
+        #enterMatrixBtn {
+            padding: 20px 60px;
+            background: linear-gradient(45deg, #001100, #003300);
+            border: 2px solid var(--matrix-green);
+            color: var(--matrix-green);
+            font-size: clamp(1rem, 3vw, 1.5rem);
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: .2em;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border-radius: 0;
+            transition: transform .3s ease, box-shadow .3s ease, color .3s ease;
+            font-family: inherit;
+            min-height: 44px;
+            min-width: 120px;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none
+        }
+
+        #enterMatrixBtn:focus-visible {
+            outline: 2px solid var(--matrix-green);
+            outline-offset: 2px
+        }
+
+        #enterMatrixBtn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 65, .2), transparent);
+            transition: left .5s
+        }
+
+        #enterMatrixBtn:hover::before {
+            left: 100%
+        }
+
+        #enterMatrixBtn:hover,
+        #enterMatrixBtn:focus-visible {
+            box-shadow: 0 0 30px var(--matrix-green);
+            transform: scale(1.05);
+            color: #fff
+        }
+
+        #enterMatrixBtn:active {
+            transform: scale(.98);
+            box-shadow: 0 0 20px var(--matrix-green)
+        }
+
+        @media (hover:none) and (pointer:coarse) {
+            #enterMatrixBtn:active {
+                background: linear-gradient(45deg, #002200, #004400)
+            }
+        }
+
+        @keyframes introGlow {
+            0% {
+                filter: brightness(1) contrast(1)
+            }
+
+            100% {
+                filter: brightness(1.1) contrast(1.2)
+            }
+        }
+
+        #mainScreen {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            opacity: 0;
+            transform: scale(1.1);
+            transition: opacity 1.2s cubic-bezier(.25, .46, .45, .94), transform 1.2s cubic-bezier(.25, .46, .45, .94);
+            display: none
+        }
+
+        #mainScreen.active {
+            display: block !important;
+            opacity: 1;
+            transform: scale(1);
+            transition: opacity .5s ease, transform .5s ease
+        }
+
+        #mainScreen.matrix-reveal {
+            animation: matrixReveal 1.5s cubic-bezier(.25, .46, .45, .94) forwards !important
+        }
+
+        #mainScreen.matrix-reveal canvas {
+            animation: canvasReveal 1.5s cubic-bezier(.25, .46, .45, .94) forwards
+        }
+
+        #mainScreen.active canvas {
+            animation: canvasFinalize 1s cubic-bezier(.25, .46, .45, .94) forwards;
+            transition: all .5s ease, box-shadow 1.5s ease
+        }
+
+        @keyframes canvasReveal {
+            0% {
+                opacity: 0;
+                transform: scale(.05) rotate(-5deg);
+                filter: brightness(.05) contrast(.3) blur(5px)
+            }
+
+            50% {
+                opacity: .5;
+                transform: scale(.5) rotate(-2deg);
+                filter: brightness(.5) contrast(.6) blur(2px)
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0);
+                filter: brightness(1) contrast(1) blur(0)
+            }
+        }
+
+        @keyframes canvasFinalize {
+            0% {
+                filter: brightness(1) contrast(1)
+            }
+
+            50% {
+                filter: brightness(1.1) contrast(1.1)
+            }
+
+            100% {
+                filter: brightness(1) contrast(1)
+            }
+        }
+
+        @keyframes matrixReveal {
+            0% {
+                opacity: 0;
+                transform: scale(.1) rotate(-3deg);
+                filter: brightness(.1) contrast(.5)
+            }
+
+            50% {
+                opacity: .5;
+                transform: scale(.6) rotate(-1deg);
+                filter: brightness(.6) contrast(.8)
+            }
+
+            100% {
+                opacity: 1;
+                transform: scale(1) rotate(0);
+                filter: brightness(1) contrast(1)
+            }
+        }
+
+        canvas {
+            display: block !important;
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            z-index: 1
+        }
+
+        #err {
+            position: fixed;
+            bottom: 8px;
+            left: 8px;
+            right: 8px;
+            color: #f55;
+            font: 12px/1.4 monospace;
+            opacity: .9;
+            pointer-events: none;
+            z-index: 200
+        }
+
+        #controls {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            color: var(--matrix-green-soft);
+            font: 11px/1.3 monospace;
+            opacity: .85;
+            pointer-events: none;
+            background: rgba(0, 0, 0, .3);
+            padding: 8px;
+            border-radius: 4px;
+            z-index: 200;
+            transform: translateY(0);
+            transition: opacity .5s ease, transform .5s ease
+        }
+
+        #controls.hidden {
+            transform: translateY(-100px);
+            opacity: 0
+        }
+
+        .key {
+            color: #88ff88;
+            font-weight: bold
+        }
+
+        #loadingOverlay {
+            position: fixed;
+            inset: 0;
+            background: #000;
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+            transition: opacity .8s ease, transform .8s ease, filter .8s ease
+        }
+
+        #loadingOverlay.hidden {
+            opacity: 0;
+            pointer-events: none
+        }
+
+        #loadingOverlay.matrix-entrance {
+            animation: matrixEntrance 2s cubic-bezier(.25, .46, .45, .94) forwards !important
+        }
+
+        @keyframes matrixEntrance {
+            0% {
+                transform: scale(1) rotate(0);
+                filter: brightness(1) contrast(1)
+            }
+
+            50% {
+                transform: scale(1.5) rotate(2deg);
+                filter: brightness(1.3) contrast(1.2)
+            }
+
+            100% {
+                transform: scale(3) rotate(5deg);
+                filter: brightness(2) contrast(1.5);
+                opacity: 0
+            }
+        }
+
+        .loading-text {
+            color: var(--matrix-green);
+            font-size: 1.5rem;
+            text-transform: uppercase;
+            letter-spacing: .3em;
+            animation: loadingPulse 1.5s ease-in-out infinite
+        }
+
+        #loadingOverlay.matrix-entrance .loading-text {
+            animation: loadingTextEntrance 2s cubic-bezier(.25, .46, .45, .94) forwards
+        }
+
+        @keyframes loadingTextEntrance {
+            0% {
+                transform: scale(1) rotate(0);
+                filter: brightness(1) hue-rotate(0)
+            }
+
+            50% {
+                transform: scale(1.3) rotate(3deg);
+                filter: brightness(1.4) hue-rotate(45deg)
+            }
+
+            100% {
+                transform: scale(2) rotate(6deg);
+                filter: brightness(2) hue-rotate(90deg);
+                opacity: 0
+            }
+        }
+
+        @keyframes loadingPulse {
+
+            0%,
+            100% {
+                opacity: .6;
+                transform: scale(1)
+            }
+
+            50% {
+                opacity: 1;
+                transform: scale(1.05)
+            }
+        }
+
+        #mobileControls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            flex-direction: row;
+            gap: 15px;
+            z-index: 300;
+            opacity: 0;
+            transition: opacity .5s ease
+        }
+
+        #mobileControls.visible {
+            opacity: 1;
+            animation: mobileControlsSlideUp .6s cubic-bezier(.25, .46, .45, .94) forwards
+        }
+
+        @keyframes mobileControlsSlideUp {
+            0% {
+                transform: translateX(-50%) translateY(50px);
+                opacity: 0
+            }
+
+            100% {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1
+            }
+        }
+
+        .mobile-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 255, 65, .2);
+            border: 1px solid var(--matrix-green);
+            color: var(--matrix-green);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            font-family: inherit;
+            cursor: pointer;
+            transition: transform .3s ease, background .3s ease;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent
+        }
+
+        .mobile-btn:focus-visible {
+            outline: 2px solid var(--matrix-green);
+            outline-offset: 2px
+        }
+
+        .mobile-btn:active {
+            background: rgba(0, 255, 65, .4);
+            transform: scale(.95)
+        }
+
+        @media (prefers-reduced-motion:reduce) {
+
+            #loadingOverlay.matrix-entrance,
+            #mainScreen.matrix-reveal,
+            #loadingOverlay.matrix-entrance .loading-text,
+            #mobileControls.visible,
+            #mainScreen.matrix-reveal canvas,
+            #mainScreen.active canvas {
+                animation: none !important;
+                transition: opacity .3s ease !important
+            }
+
+            #loadingOverlay.matrix-entrance {
+                opacity: 0 !important
+            }
+
+            #mainScreen.matrix-reveal {
+                opacity: 1 !important;
+                transform: scale(1) !important
+            }
+
+            #mainScreen.matrix-reveal canvas,
+            #mainScreen.active canvas {
+                opacity: 1 !important;
+                transform: scale(1) !important;
+                filter: brightness(1) contrast(1) blur(0) !important
+            }
+
+            #loadingOverlay.matrix-entrance .loading-text {
+                opacity: 0 !important
+            }
+
+            #mobileControls.visible {
+                opacity: 1 !important;
+                transform: translateY(0) !important
+            }
+        }
+
+        @media (max-width:768px) {
+
+            html,
+            body {
+                overscroll-behavior: none
+            }
+
+            #introScreen .author-name {
+                font-size: clamp(1.5rem, 12vw, 2.8rem);
+                text-shadow: 0 0 15px var(--matrix-green), 0 0 30px var(--matrix-green), 0 0 45px var(--matrix-green)
+            }
+
+            #introScreen .author-surname {
+                font-size: clamp(1rem, 10vw, 2.2rem);
+                margin-bottom: 2.5rem;
+                text-shadow: 0 0 10px var(--matrix-green-2), 0 0 20px var(--matrix-green-2)
+            }
+
+            #enterMatrixBtn {
+                padding: 18px 45px;
+                font-size: clamp(1rem, 4.5vw, 1.3rem);
+                min-height: 50px
+            }
+
+            #controls {
+                display: none
+            }
+
+            #mobileControls {
+                display: flex
+            }
+        }
+
+        @media (max-width:480px) {
+            #introScreen .content {
+                padding: 0 20px
+            }
+
+            #introScreen .author-name {
+                font-size: clamp(1.2rem, 15vw, 2.2rem);
+                margin-bottom: .3rem
+            }
+
+            #introScreen .author-surname {
+                font-size: clamp(.9rem, 12vw, 1.8rem);
+                margin-bottom: 2rem
+            }
+
+            #enterMatrixBtn {
+                padding: 16px 35px;
+                font-size: clamp(.9rem, 5vw, 1.1rem);
+                letter-spacing: .1em
+            }
+
+            .mobile-btn {
+                width: 45px;
+                height: 45px;
+                font-size: 11px
+            }
+        }
+
+        @media (max-height:500px) and (orientation:landscape) {
+            #introScreen .author-name {
+                font-size: clamp(1rem, 8vh, 1.8rem)
+            }
+
+            #introScreen .author-surname {
+                font-size: clamp(.8rem, 6vh, 1.4rem);
+                margin-bottom: 1.5rem
+            }
+
+            #enterMatrixBtn {
+                padding: 12px 30px;
+                font-size: clamp(.8rem, 4vh, 1rem)
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="introScreen" aria-labelledby="introTitle" aria-describedby="introDesc">
+        <canvas id="introBg" class="matrix-bg"></canvas>
+        <div class="content">
+            <div id="introTitle" class="author-name">ILYA</div>
+            <div class="author-surname">IVANTSOV</div>
+            <p id="introDesc" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">
+                Нажмите, чтобы включить камеру и войти в экран матрицы.</p>
+            <button id="enterMatrixBtn">Войти в матрицу</button>
+        </div>
+    </div>
+    <div class="magnifier" id="magnifier"></div>
+    <div id="loadingOverlay" class="hidden">
+        <div class="loading-text">Инициализация нейроинтерфейса…</div>
+    </div>
+    <div id="mainScreen">
+        <div id="err" aria-live="polite"></div>
+        <div id="controls" class="hidden" aria-hidden="true">
+            <span class="key">R</span> — дождь<br>
+            <span class="key">E</span> — улучшение<br>
+            <span class="key">F</span> — полный экран
+        </div>
+        <div id="mobileControls" role="toolbar" aria-label="Управление Матрицей">
+            <button class="mobile-btn" id="toggleRainBtn" title="Включить дождь" aria-label="Включить дождь"
+                aria-pressed="false">R</button>
+            <button class="mobile-btn" id="toggleEnhanceBtn" title="Улучшение изображения"
+                aria-label="Улучшение изображения" aria-pressed="true">E</button>
+            <button class="mobile-btn" id="toggleFullscreenBtn" title="Полноэкранный режим"
+                aria-label="Полноэкранный режим">⛶</button>
+            <button class="mobile-btn" id="cameraSwitchBtn" title="Переключить камеру"
+                aria-label="Переключить камеру">📷</button>
+        </div>
+        <canvas id="q"></canvas>
+    </div>
+    <script>
+        const DEBUG = false; const dlog = (...a) => { if (DEBUG) console.log(...a) }
+        const introScreen = document.getElementById('introScreen'); const mainScreen = document.getElementById('mainScreen'); const loadingOverlay = document.getElementById('loadingOverlay'); const enterMatrixBtn = document.getElementById('enterMatrixBtn'); const controlsPanel = document.getElementById('controls'); const mobileControls = document.getElementById('mobileControls'); const errBox = document.getElementById('err'); const magnifier = document.getElementById('magnifier')
+        const isMobile = matchMedia('(hover: none) and (pointer: coarse)').matches || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent); const prefersReduced = matchMedia('(prefers-reduced-motion: reduce)').matches
+        const toggleRainBtn = document.getElementById('toggleRainBtn'); const toggleEnhanceBtn = document.getElementById('toggleEnhanceBtn'); const toggleFullscreenBtn = document.getElementById('toggleFullscreenBtn'); const cameraSwitchBtn = document.getElementById('cameraSwitchBtn')
+        const canvas = document.getElementById('q'); const ctx = canvas.getContext('2d', { alpha: false }); const introBgCanvas = document.getElementById('introBg'); const introBgCtx = introBgCanvas.getContext('2d', { alpha: false })
+        const video = document.createElement('video'); video.playsInline = true; video.muted = true; video.autoplay = true
+        const sample = document.createElement('canvas'); const sctx = sample.getContext('2d', { willReadFrequently: true })
+        const CHARSET = " .`',^:;~\"-!|\\/()*+?><}{][Il1ifjrxnuvczXYUJCLQ0OZmwqpdbkhao#MW&8%B@$█"
+        const BASE_FPS = prefersReduced ? 12 : (isMobile ? 24 : 30); let FPS = BASE_FPS; const FADE_ALPHA = isMobile ? .06 : .04
+        const CONTRAST = 1.3; const BRIGHTNESS = .1; const GAMMA = .8
+        let showRain = false; let enhancedMode = true
+        let currentScreen = 'intro'; let introAnimationRunning = false; let cameraActive = false
+        let currentCameraFacing = 'user'; let currentStream = null; let visibilityChangeHandler = null
+        let magnifierVisible = false; let glitchInterval = null; let introMouseMoveHandler = null
+        let dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2)); let W = 0, H = 0, COLS = 0, ROWS = 0; let introW = 0, introH = 0, introCOLS = 0, introROWS = 0
+        let drops = []; let introDrops = []
+        let neonGradient = null; let introGradient = null
+        const MAX_CELLS = 16000; const MOBILE_BASE_FONT = 10; const DESKTOP_BASE_FONT = 8
+        function computeFontSize(w, h) { const base = prefersReduced ? (isMobile ? 12 : 10) : (isMobile ? MOBILE_BASE_FONT : DESKTOP_BASE_FONT); const s = Math.min(40, Math.max(base, Math.floor(Math.sqrt((w * h) / MAX_CELLS)))); return s }
+        let FONT_SIZE = computeFontSize(window.innerWidth, window.innerHeight)
+        function setupIntroCanvas() { dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2)); const w = window.innerWidth; const h = window.innerHeight; introBgCanvas.width = Math.floor(w * dpr); introBgCanvas.height = Math.floor(h * dpr); introBgCanvas.style.width = w + 'px'; introBgCanvas.style.height = h + 'px'; introBgCtx.setTransform(dpr, 0, 0, dpr, 0, 0); introW = w; introH = h; introCOLS = Math.floor(introW / FONT_SIZE); introROWS = Math.floor(introH / FONT_SIZE); introGradient = introBgCtx.createLinearGradient(0, 0, 0, introH); introGradient.addColorStop(0, '#001100'); introGradient.addColorStop(.35, '#003322'); introGradient.addColorStop(.65, '#004433'); introGradient.addColorStop(1, '#005544'); introDrops = new Array(introCOLS).fill(0).map(() => Math.floor(Math.random() * introROWS) * -1); introBgCtx.font = `${FONT_SIZE}px monospace`; introBgCtx.textBaseline = 'top' }
+        function setCanvasSize() { dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 2)); const w = window.innerWidth; const h = window.innerHeight; FONT_SIZE = computeFontSize(w, h); canvas.width = Math.floor(w * dpr); canvas.height = Math.floor(h * dpr); canvas.style.width = w + 'px'; canvas.style.height = h + 'px'; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); W = w; H = h; COLS = Math.floor(W / FONT_SIZE); ROWS = Math.floor(H / FONT_SIZE); sample.width = COLS; sample.height = ROWS; neonGradient = ctx.createLinearGradient(0, 0, 0, H); neonGradient.addColorStop(0, '#003300'); neonGradient.addColorStop(.35, '#00aa44'); neonGradient.addColorStop(.65, '#00dd55'); neonGradient.addColorStop(1, '#00ff66'); drops = new Array(COLS).fill(0).map(() => Math.floor(Math.random() * ROWS) * -1); ctx.font = `${FONT_SIZE}px monospace`; ctx.textBaseline = 'top'; dlog('Canvas size set:', { W, H, COLS, ROWS, FONT_SIZE }) }
+        window.addEventListener('resize', () => { if (currentScreen === 'intro') { setupIntroCanvas() } else { setCanvasSize() } })
+        let rafId = null; let lastFrameTime = 0; const USE_VFC = ('requestVideoFrameCallback' in HTMLVideoElement.prototype); let vfcActive = false
+        function startLoop() { if (rafId !== null) return; if (USE_VFC) { vfcActive = true; const step = (_n, _m) => { if (!vfcActive) { rafId = null; return } mainLoop(performance.now()); video.requestVideoFrameCallback(step) }; video.requestVideoFrameCallback(step); rafId = 1 } else { const tick = ts => { rafId = requestAnimationFrame(tick); mainLoop(ts) }; rafId = requestAnimationFrame(tick) } }
+        function stopLoop() { if (rafId === null) return; if (USE_VFC) { vfcActive = false } else { cancelAnimationFrame(rafId) } rafId = null }
+        async function enterMatrix() { if (currentScreen !== 'intro') return; currentScreen = 'loading'; loadingOverlay.classList.remove('hidden'); introScreen.classList.add('fade-out'); cleanupIntroMagnifier(); await new Promise(r => setTimeout(r, 500)); try { const cameraPromise = startCamera(); if (!prefersReduced) { loadingOverlay.classList.add('matrix-entrance'); await new Promise(r => setTimeout(r, 2000)) } loadingOverlay.classList.add('hidden'); await cameraPromise; setCanvasSize(); currentScreen = 'matrix'; mainScreen.classList.add('matrix-reveal'); await new Promise(r => setTimeout(r, prefersReduced ? 100 : 1500)); mainScreen.classList.remove('matrix-reveal'); mainScreen.classList.add('active'); startLoop(); await new Promise(r => setTimeout(r, 300)); if (isMobile) { mobileControls.classList.add('visible') } else { controlsPanel.classList.remove('hidden'); controlsPanel.setAttribute('aria-hidden', 'false') } const canvasEl = document.getElementById('q'); if (canvasEl) { canvasEl.style.boxShadow = '0 0 30px rgba(0, 255, 65, 0.2)'; setTimeout(() => { canvasEl.style.boxShadow = 'none' }, 1500) } } catch (error) { currentScreen = 'intro'; loadingOverlay.classList.remove('matrix-entrance'); loadingOverlay.classList.add('hidden'); introScreen.classList.remove('fade-out'); errBox.textContent = 'Не удалось получить доступ к камере: ' + (error?.message || error); mainScreen.classList.remove('matrix-reveal') } }
+        async function startCamera(facingMode = currentCameraFacing) { try { if (currentStream) { currentStream.getTracks().forEach(t => t.stop()) } const vw = window.innerWidth; const vh = window.innerHeight; const constraints = { video: { facingMode, frameRate: { ideal: isMobile ? 24 : 30 }, width: isMobile ? { ideal: 1280, min: 640 } : { ideal: 1920, min: 1280 }, height: isMobile ? { ideal: 720, min: 480 } : { ideal: 1080, min: 720 }, aspectRatio: { ideal: vw / vh } }, audio: false }; dlog('Requesting camera access with constraints:', constraints); const stream = await navigator.mediaDevices.getUserMedia(constraints); currentStream = stream; currentCameraFacing = facingMode; video.srcObject = stream; await new Promise(res => { if (video.readyState >= 2) res(); else video.onloadedmetadata = res }); await video.play().catch(() => { }); setCanvasSize(); cameraActive = true; lastFrameTime = 0; dlog('Camera activated successfully:', { COLS, ROWS, W, H }) } catch (error) { dlog('Camera access failed:', error); setCanvasSize(); cameraActive = false } }
+        async function switchCamera() { if (!currentStream) return; const newFacing = currentCameraFacing === 'user' ? 'environment' : 'user'; try { await startCamera(newFacing) } catch (error) { errBox.textContent = 'Не удалось переключить камеру: ' + (error?.message || error); if (currentCameraFacing !== newFacing) { await startCamera(currentCameraFacing) } } }
+        function setCameraEnabled(enabled) { if (!currentStream) return; currentStream.getVideoTracks().forEach(t => t.enabled = enabled) }
+        function enhanceImage(l) { if (!enhancedMode) return l; let e = (l + BRIGHTNESS) * CONTRAST; e = Math.pow(Math.max(0, Math.min(1, e)), GAMMA); return e }
+        function charForLuma(l) { const enhanced = enhanceImage(l); const curved = Math.pow(enhanced, .7); const i = Math.min(CHARSET.length - 1, Math.max(0, Math.floor(curved * (CHARSET.length - 1)))); return CHARSET[i] }
+        let lumasBuf = null
+        function getGridLumas() { if (lumasBuf === null || lumasBuf.length !== COLS * ROWS) lumasBuf = new Float32Array(COLS * ROWS); if (!cameraActive || !video.videoWidth || !video.videoHeight) { const time = Date.now() * 0.001; for (let y = 0; y < ROWS; y++) { for (let x = 0; x < COLS; x++) { const index = y * COLS + x; const noise = Math.sin(x * .1 + time) * Math.cos(y * .1 + time * .7); const wave = Math.sin(x * .05 + time * 2) * Math.cos(y * .05 + time * 1.5); lumasBuf[index] = Math.max(0, Math.min(1, (noise + wave) * .3 + .5)) } } return lumasBuf } const vW = video.videoWidth; const vH = video.videoHeight; const srcRatio = vW / vH; const dstRatio = COLS / ROWS; let sx = 0, sy = 0, sw = vW, sh = vH; if (dstRatio > srcRatio) { sh = Math.floor(vW / dstRatio); sy = Math.floor((vH - sh) / 2) } else { sw = Math.floor(vH * dstRatio); sx = Math.floor((vW - sw) / 2) } sctx.imageSmoothingEnabled = true; sctx.imageSmoothingQuality = 'high'; sctx.drawImage(video, sx, sy, sw, sh, 0, 0, COLS, ROWS); const img = sctx.getImageData(0, 0, COLS, ROWS).data; for (let i = 0, p = 0; i < img.length; i += 4, p++) { const r = img[i], g = img[i + 1], b = img[i + 2]; lumasBuf[p] = (0.299 * r + 0.587 * g + 0.114 * b) / 255 } return lumasBuf }
+        function showMagnifier() { if (!isMobile && !magnifierVisible) { magnifierVisible = true; magnifier.classList.add('active'); introScreen.classList.add('cursorless'); glitchInterval = setInterval(() => { if (Math.random() > .95) { magnifier.classList.add('glitch'); setTimeout(() => { magnifier.classList.remove('glitch') }, 300) } }, 100) } }
+        function hideMagnifier() { if (magnifierVisible) { magnifierVisible = false; magnifier.classList.remove('active'); introScreen.classList.remove('cursorless'); if (glitchInterval) { clearInterval(glitchInterval); glitchInterval = null } } }
+        function updateMagnifierPosition(x, y) { if (magnifierVisible) { magnifier.style.left = x + 'px'; magnifier.style.top = y + 'px' } }
+        function renderIntroMatrixRain() { if (!introCOLS || !introROWS) return; introBgCtx.fillStyle = 'rgba(0,0,0,0.05)'; introBgCtx.fillRect(0, 0, introW, introH); for (let x = 0; x < introCOLS; x++) { let y = introDrops[x]; if (y >= 0 && y < introROWS && Math.random() > .4) { const ch = CHARSET[Math.floor(Math.random() * CHARSET.length)]; introBgCtx.save(); introBgCtx.fillStyle = '#00ff41'; introBgCtx.globalAlpha = .9; introBgCtx.fillText(ch, x * FONT_SIZE, y * FONT_SIZE); introBgCtx.restore(); for (let t = 1; t <= 4; t++) { const yy = y - t; if (yy < 0) break; const alpha = Math.max(.1, 1 - t / 5); introBgCtx.save(); introBgCtx.globalAlpha = alpha * .6; introBgCtx.fillStyle = introGradient; introBgCtx.fillText(ch, x * FONT_SIZE, yy * FONT_SIZE); introBgCtx.restore() } } introDrops[x] = y + 1; if (introDrops[x] * FONT_SIZE > introH && Math.random() > .98) { introDrops[x] = Math.floor(-Math.random() * introROWS * .3) } } }
+        let introLastTime = 0
+        function introLoop(ts) { if (currentScreen !== 'intro' || !introAnimationRunning) return; if (ts - introLastTime >= (1000 / BASE_FPS)) { renderIntroMatrixRain(); introLastTime = ts } requestAnimationFrame(introLoop) }
+        function mainLoop(ts) { if (currentScreen !== 'matrix') return; if (!USE_VFC && ts - lastFrameTime < (1000 / FPS)) return; lastFrameTime = ts; if (!COLS || !ROWS) return; if (showRain) { ctx.fillStyle = `rgba(0,0,0,${FADE_ALPHA})`; ctx.fillRect(0, 0, W, H) } else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H) } const lumas = getGridLumas(); ctx.fillStyle = neonGradient; ctx.font = `${FONT_SIZE}px monospace`; ctx.textBaseline = 'top'; for (let y = 0; y < ROWS; y++) { const yPx = y * FONT_SIZE; for (let x = 0; x < COLS; x++) { const l = lumas[y * COLS + x]; const ch = charForLuma(l); ctx.fillText(ch, x * FONT_SIZE, yPx) } } if (showRain) { for (let x = 0; x < COLS; x++) { let y = drops[x]; if (y >= 0 && y < ROWS && Math.random() > .5) { const l = lumas[(y * COLS) + x]; const ch = charForLuma(l); ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.fillStyle = '#aaffaa'; ctx.fillText(ch, x * FONT_SIZE, y * FONT_SIZE); ctx.restore(); const tail = 3; for (let t = 1; t <= tail; t++) { const yy = y - t; if (yy < 0) break; const lt = lumas[(yy * COLS) + x]; const cht = charForLuma(lt); const alpha = Math.max(.05, 1 - t / (tail + 1)); ctx.save(); ctx.globalAlpha = alpha * .6; ctx.fillStyle = neonGradient; ctx.fillText(cht, x * FONT_SIZE, yy * FONT_SIZE); ctx.restore() } } drops[x] = y + 1; if (drops[x] * FONT_SIZE > H && Math.random() > .985) { drops[x] = Math.floor(-Math.random() * ROWS * .8) } } } }
+        function setupMobileOptimizations() { visibilityChangeHandler = () => { if (document.hidden) { stopLoop(); setCameraEnabled(false) } else { setCameraEnabled(true); if (currentScreen === 'matrix') startLoop() } }; document.addEventListener('visibilitychange', visibilityChangeHandler) }
+        function preventTouchDefaultsOnCanvas() { ['touchstart', 'touchmove', 'touchend', 'touchcancel'].forEach(type => { canvas.addEventListener(type, e => { if (e.target.closest('button')) return; e.preventDefault() }, { passive: false }) }) }
+        function setupMobileControls() { if (!isMobile) return; toggleRainBtn.addEventListener('click', () => { showRain = !showRain; toggleRainBtn.style.background = showRain ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleRainBtn.setAttribute('aria-pressed', String(showRain)) }); toggleEnhanceBtn.addEventListener('click', () => { enhancedMode = !enhancedMode; toggleEnhanceBtn.style.background = enhancedMode ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleEnhanceBtn.setAttribute('aria-pressed', String(enhancedMode)) }); toggleEnhanceBtn.style.background = enhancedMode ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleRainBtn.style.background = showRain ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleFullscreenBtn.addEventListener('click', toggleFullscreen); cameraSwitchBtn.addEventListener('click', switchCamera);[toggleRainBtn, toggleEnhanceBtn, toggleFullscreenBtn, cameraSwitchBtn].forEach(btn => { btn.addEventListener('touchstart', () => { btn.style.transform = 'scale(0.95)' }, { passive: true }); btn.addEventListener('touchend', () => { btn.style.transform = 'scale(1)' }, { passive: true }) }) }
+        async function toggleFullscreen() { try { const el = document.documentElement; const doc = document; const wdoc = doc; const isFs = !!(doc.fullscreenElement || wdoc.webkitFullscreenElement); if (!isFs) { if (el.requestFullscreen) await el.requestFullscreen(); else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen() } else { if (doc.exitFullscreen) await doc.exitFullscreen(); else if (wdoc.webkitExitFullscreen) wdoc.webkitExitFullscreen() } } catch (e) { errBox.textContent = 'Полноэкранный режим не поддерживается на этом устройстве/браузере.' } }
+        document.addEventListener('keydown', e => { if (currentScreen !== 'matrix') return; switch (e.code) { case 'KeyR': showRain = !showRain; if (isMobile) { toggleRainBtn.style.background = showRain ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleRainBtn.setAttribute('aria-pressed', String(showRain)) } break; case 'KeyE': enhancedMode = !enhancedMode; if (isMobile) { toggleEnhanceBtn.style.background = enhancedMode ? 'rgba(0,255,65,0.4)' : 'rgba(0,255,65,0.2)'; toggleEnhanceBtn.setAttribute('aria-pressed', String(enhancedMode)) } break; case 'KeyF': toggleFullscreen(); break } })
+        function cleanup() { stopLoop(); cleanupIntroMagnifier(); if (currentStream) { currentStream.getTracks().forEach(track => track.stop()); currentStream = null } if (visibilityChangeHandler) { document.removeEventListener('visibilitychange', visibilityChangeHandler) } }
+        window.addEventListener('beforeunload', cleanup); window.addEventListener('pagehide', cleanup)
+        function setupIntroMagnifier() { if (isMobile) return; introScreen.addEventListener('mouseenter', showMagnifier); introScreen.addEventListener('mouseleave', hideMagnifier); introMouseMoveHandler = e => { updateMagnifierPosition(e.clientX, e.clientY) }; introScreen.addEventListener('mousemove', introMouseMoveHandler) }
+        function cleanupIntroMagnifier() { hideMagnifier(); if (!isMobile) { introScreen.removeEventListener('mouseenter', showMagnifier); introScreen.removeEventListener('mouseleave', hideMagnifier); if (introMouseMoveHandler) { introScreen.removeEventListener('mousemove', introMouseMoveHandler); introMouseMoveHandler = null } } }
+        function initApp() { FONT_SIZE = computeFontSize(window.innerWidth, window.innerHeight); setupIntroCanvas(); if (isMobile) { setupMobileOptimizations(); setupMobileControls(); preventTouchDefaultsOnCanvas() } else { setupIntroMagnifier() } currentScreen = 'intro'; introAnimationRunning = true; requestAnimationFrame(introLoop); enterMatrixBtn.addEventListener('click', enterMatrix); if (!(CSS.supports && (CSS.supports('backdrop-filter', 'blur(1px)') || CSS.supports('-webkit-backdrop-filter', 'blur(1px)')))) { magnifier.style.display = 'none' } }
+        initApp()
+    </script>
 </body>
+
 </html>
